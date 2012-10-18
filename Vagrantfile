@@ -5,10 +5,10 @@ Vagrant::Config.run do |config|
   config.vm.forward_port 3000, 3000
   # config.vm.forward_port 43000,43000,{ :protocol => "udp"}
 
-  config.vm.share_folder "kitehunt", "/home/vagrant/kitehunt", "kitehunt"
+  config.vm.share_folder "app", "/home/vagrant/app", "app"
 
   # allow for symlinks in the app folder
-  config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/kitehunt", "1"]
+  config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/app", "1"]
 
 
   config.vm.provision :chef_solo do |chef|

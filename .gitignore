@@ -164,3 +164,5 @@ pip-log.txt
 
 #Vagrant reference to local VM
 .vagrant
+
+/app/node_modules
