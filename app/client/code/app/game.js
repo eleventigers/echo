@@ -81,7 +81,10 @@ function setupScene(){
 
 	// }
 
-	var lsys = new L();
+	var l = new L();
+	var c = l.build("b", 4);
+
+	console.log(c);
 	
 
 	// // floor
