@@ -31,8 +31,6 @@ var instructions = document.getElementById( 'instructions' );
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
 
-
-
 exports.init = function() {
 	setupRenderer();
 	setupScene();
@@ -74,14 +72,16 @@ function setupScene(){
 	ray = new THREE.Ray();
 	ray.direction.set( 0, -1, 0 );
 
-	var tree = new Tree(10, camera.position);
-	scene.add(tree);
-	objects.push(tree);
+	// var tree = new Tree(10, camera.position);
+	// scene.add(tree);
+	// objects.push(tree);
 
-	for (var i = 0; i < 10; i++){
-		tree.grow();
+	// for (var i = 0; i < 10; i++){
+	// 	tree.grow();
 
-	}
+	// }
+
+	var lsys = new L();
 	
 
 	// // floor
