@@ -81,10 +81,57 @@ function setupScene(){
 
 	// }
 
-	var l = new L();
-	var c = l.build("b", 4);
+	var prods = {
+		
+		A : function(params) {
+			var p = this.pConv(params);
+			
+				if (p[1] <= 3){
+					var x = p[0]*2;
+					var y = p[0]+p[1];
+					return ("A("+x+","+y+")");
+				}
+				if (p[1] > 3){
+					var x = p[0];
+					var y = p[0]/p[1];
+					return ("B("+x+")A("+y+",0)");
+				}
+				else{
+					return "A";
+				}
+			
+			
+		},
+		B : function(params) {
+			var p = this.pConv(params);
+	
+				if (p[0] < 1){
+					return "C";
+				}
+				if (p[0] >= 1){
+					var x = p[0]-1;
+					return "B("+x+")";
+				}
+				else{
+					return "B";
+				}
+			
+		},
+		pConv : function(params){
+			var conv = [];
+			for (var i = 0; i < params.length; i++){
+				conv.push(parseInt(params[i]));
+			}
+			return conv;
+		}
+	}
+
+	var l = new L(prods);
+	var c = l.build("B(2)A(4, 4)", 100);
+
 
 	console.log(c);
+
 	
 
 	// // floor

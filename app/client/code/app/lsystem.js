@@ -21,19 +21,46 @@ L.prototype.constructor = L;
 
 L.prototype.build = function(axiom, iter){
 
+	var r = "";
 
-	var chars = (typeof axiom == "string") ? axiom.split("") : undefined;
-	var replaced = "";
-	
-	if (typeof chars != "undefined"){
-		for (var i = 0; i < chars.length; i++){
-			var rS = this.prods(chars[i]);
-			replaced += rS;
-		}	
+	for (var i = 0; i < axiom.length; i++){
+
+		var axCut = axiom.slice(i, axiom.length);
+		
+		if (axCut[1] == "("){
+			var params;
+			var pEnd = axCut.indexOf(")");
+			if (pEnd != -1){
+				var pS = axCut.slice(2, pEnd);
+				if (pS.indexOf(",") != -1){
+					params = pS.split(",");
+				} else { params = pS; }
+
+			}
+			if (this.prods.hasOwnProperty(axCut[0])){
+				var aR = this.prods[axCut[0]](params);
+				if (aR){
+					r += aR;
+				}	
+
+			}	
+		} else {
+			if (this.prods.hasOwnProperty(axCut[0])){
+				var aR = this.prods[axCut[0]]();
+				if (aR){
+					r += aR;
+				}
+			}	
+		}
+
 
 	}
 
-	return (iter == 0 || typeof iter == "undefined") ? replaced : this.build(replaced, iter-1);
+	(typeof r == "undefined" || r =="") ? r = axiom : r;
+
+	console.log(r);
+
+	return (iter == 0 || typeof iter == "undefined") ? r : this.build(r, iter-1);
 
 }
 
