@@ -81,69 +81,68 @@ function setupScene(){
 
 	// }
 
-	var prods = {
-		
-		A : function(params) {
-			var p = this.pConv(params);
-			
-				if (p[1] <= 3){
-					var x = p[0]*2;
-					var y = p[0]+p[1];
-					return ("A("+x+","+y+")");
-				}
-				if (p[1] > 3){
-					var x = p[0];
-					var y = p[0]/p[1];
-					return ("B("+x+")A("+y+",0)");
-				}
-				else{
-					return "A";
-				}
-			
-			
-		},
-		B : function(params) {
-			var p = this.pConv(params);
+	var d = 10;
+
+	var ls = new jjs.Lsystem({ 
+              "+": function() {  },
+              "-": function() {  },
+              "&": function() {  },
+              "^": function() {  },
+              "l": function() {  },
+              "r": function() {  },
+              "|": function() {  },
+              "F": function() {  }
+             }, 
+             [ {id: "F"} ], 
+             [ 
+               { p: [ {id: "F"} ], 
+                 s: [ {p: 0.33, f: function() { return [{id:"F"},[{id:"+"},{id:"F"}], 
+                                             {id:"F"},[{id:"-"},{id:"F"}],{id:"F"}];} },
+                      {p: 0.33, f: function() { return [{id:"F"},[{id:"+"},{id:"F"}],{id:"F"}];} },
+                      {p: 0.34, f: function() { return [{id:"F"},[{id:"-"},{id:"F"}],{id:"F"}];} }
+                    ] }
+             ]
+    );
 	
-				if (p[0] < 1){
-					return "C";
-				}
-				if (p[0] >= 1){
-					var x = p[0]-1;
-					return "B("+x+")";
-				}
-				else{
-					return "B";
-				}
-			
-		},
-		pConv : function(params){
-			var conv = [];
-			for (var i = 0; i < params.length; i++){
-				conv.push(parseInt(params[i]));
-			}
-			return conv;
-		}
+	var material = new THREE.MeshLambertMaterial({
+      color: 0xFF0000,
+      ambient: 0xFF0000
+    });
+
+    var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+    var normalizationMatrix = new THREE.Matrix4();
+    normalizationMatrix.rotateX(Math.PI / 2);
+    normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+    turtleGeometry.applyMatrix(normalizationMatrix);
+
+	var turtle = new Turtle(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), material, turtleGeometry, 5);
+
+
+	for (var i = 0; i < 50; i++)
+	{
+	  turtle.go(20);
+	  turtle.pitch(20);
+	  turtle.roll(10);
 	}
 
-	var l = new L(prods);
-	var c = l.build("B(2)A(4, 4)", 100);
+	var meshes = turtle.retrieveMeshes();
+    for (var _i = 0, _len = meshes.length; _i < _len; _i++) {
+      scene.add(meshes[_i]);
+    }
+
+	console.log(turtle);
 
 
-	console.log(c);
+	// floor
 
-	
-
-	// // floor
-
-	// geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
-	// geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+	geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
 
-	// material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+	material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 
-	// mesh = new THREE.Mesh( geometry, material );
-	// scene.add( mesh );
+	mesh = new THREE.Mesh( geometry, material );
+	scene.add( mesh );
 
 }
 
@@ -234,7 +233,6 @@ function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	tree.grow();
 }
 
 
