@@ -81,28 +81,9 @@ function setupScene(){
 
 	// }
 
-	var d = 10;
 
-	var ls = new jjs.Lsystem({ 
-              "+": function() {  },
-              "-": function() {  },
-              "&": function() {  },
-              "^": function() {  },
-              "l": function() {  },
-              "r": function() {  },
-              "|": function() {  },
-              "F": function() {  }
-             }, 
-             [ {id: "F"} ], 
-             [ 
-               { p: [ {id: "F"} ], 
-                 s: [ {p: 0.33, f: function() { return [{id:"F"},[{id:"+"},{id:"F"}], 
-                                             {id:"F"},[{id:"-"},{id:"F"}],{id:"F"}];} },
-                      {p: 0.33, f: function() { return [{id:"F"},[{id:"+"},{id:"F"}],{id:"F"}];} },
-                      {p: 0.34, f: function() { return [{id:"F"},[{id:"-"},{id:"F"}],{id:"F"}];} }
-                    ] }
-             ]
-    );
+
+	
 	
 	var material = new THREE.MeshLambertMaterial({
       color: 0xFF0000,
@@ -115,22 +96,65 @@ function setupScene(){
     normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
     turtleGeometry.applyMatrix(normalizationMatrix);
 
-	var turtle = new Turtle(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), material, turtleGeometry, 5);
+	var turtle = new Turtle(new THREE.Vector3(0, 0, -120), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
 
+	var angle = 12.5;
+	var dis = 10;
+	var width = 1;
+	console.log();
 
-	for (var i = 0; i < 50; i++)
-	{
-	  turtle.go(20);
-	  turtle.pitch(20);
-	  turtle.roll(10);
+	var ls = new jjs.Lsystem({
+           "A": function() {  },
+           "F": function() { turtle.go(dis); },
+           "L": function() {  },
+           "S": function() {  },
+           "!": function() { turtle.setWidth((width - this.generation/10))},
+           "&": function() { turtle.pitch(angle); },
+           "'": function() { turtle.setColor('0x'+Math.floor(Math.random()*16777215).toString(16))},
+           "^": function() { turtle.pitch(-angle); },
+           "+": function() { turtle.yaw(-angle); },
+           "-": function() { turtle.yaw(angle); },
+           "rR": function() { turtle.roll(angle); },
+           "rL": function() { turtle.roll(-angle); },
+           "[" : function(){ turtle.push();},
+           "]": function(){ turtle.pop(); }
+
+         }, 
+         [ {id: "A"}], 
+         [ 
+           { p: [ {id: "A"} ], 
+             s: function() { return [{id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"}, 
+             {id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},
+             {id:"["},{id:"^"},{id:"F"},{id:"L"},{id:"A"},{id: "]"},{id:"'"}];} 
+         	},
+         	{ p: [ {id: "F"}],
+         	  s: function() { return [{id:"S"},{id:"rR"},{id:"rL"},{id:"rR"},{id:"rR"},{id:"rR"}, {id: "F"}];}
+         	},
+         	{ p: [ {id: "S"}],
+         	  s: function() { return [{id:"F"}, {id: "L"}];}
+         	},
+         	{ p: [ {id: "L"}],
+         	  s: function() { return [{id: "L"}];}
+         	}
+
+         ]
+    );
+  
+	turtle.pitch(-20);
+
+	for (var i = 0; i < 5; i++){
+		ls.generate();
+		ls.render();
 	}
 
-	var meshes = turtle.retrieveMeshes();
-    for (var _i = 0, _len = meshes.length; _i < _len; _i++) {
-      scene.add(meshes[_i]);
+  	var meshes = turtle.retrieveMeshes();
+    			for (var _i = 0, _len = meshes.length; _i < _len; _i++) {
+    				var mesh = meshes[_i];
+      				scene.add(mesh);
     }
+	
 
-	console.log(turtle);
+	console.log(turtle, ls);
 
 
 	// floor

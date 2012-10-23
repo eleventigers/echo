@@ -1,10 +1,10 @@
 /**
  * @author prAk https://github.com/progma
+ * @mod jokubas@tailwinded.com
  */
 
 
 Turtle = function(position, direction, up, material, geometry, width){
-
 	this.position = position;
 	this.direction = direction;
 	this.up = up;
@@ -15,6 +15,7 @@ Turtle = function(position, direction, up, material, geometry, width){
 	this.up.normalize();
 	this.droppings = [];
 	this.drawing = true;
+	this.stack = [];
 
 }
 
@@ -69,9 +70,10 @@ Turtle.prototype.setMaterial = function(material) {
   	this.material = material;
 };
 Turtle.prototype.setColor = function(hex) {
+	var hexInt = parseInt(hex);
   	return this.setMaterial(new THREE.MeshLambertMaterial({
-    	color: hex,
-    	ambient: hex
+    	color: hexInt,
+    	ambient: hexInt
   	}));
 };
 Turtle.prototype.retrieveMeshes = function() {
@@ -96,6 +98,25 @@ Turtle.prototype.retrieveMeshes = function() {
 	}
 	return _results;
 };
+
+
+
+Turtle.prototype.push = function(){
+	this.stack.push({position: this.position, direction : this.direction, up : this.up, material : this.material, geometry : this.geometry, width : this.width, drawing : this.drawing});
+	return this;
+}
+
+Turtle.prototype.pop = function(){
+	var state = this.stack.pop();
+	this.position = state.position;
+	this.direction = state.direction;
+	this.up = state.up;
+	this.material = state.material;
+	this.geometry = state.geometry;
+	this.width = state.width;
+	this.drawing = state.drawing;
+	return this;
+}
 
 Turtle.prototype.deg2rad = function(degrees) {
     return degrees / 360 * 2 * Math.PI;
