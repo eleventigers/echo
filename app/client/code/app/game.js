@@ -19,8 +19,8 @@ var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELE
 // Global clock
 var time = Date.now();
 
-// Freesound API access
-var freesound = new Freesound('d34c2909acd242819a7f4ceba6a7c041', true);
+// Audio
+var audio;
 
 // Pointer lock
 
@@ -43,7 +43,7 @@ exports.init = function() {
 
 function setupRenderer() {
 
-	renderer = new THREE.WebGLRenderer( { clearColor: 0xBCD2EE, clearAlpha: 1, antialias: false } );
+	renderer = new THREE.WebGLRenderer( { clearColor: 0xBCD2EE, clearAlpha: 1, antialias: true } );
 	renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 	renderer.autoClear = false;
 	renderer.shadowMapEnabled = true;
@@ -72,101 +72,94 @@ function setupScene(){
 	ray = new THREE.Ray();
 	ray.direction.set( 0, -1, 0 );
 
-	// var tree = new Tree(10, camera.position);
-	// scene.add(tree);
-	// objects.push(tree);
+	audio = new Audio.Scene();
+	audio.attach(camera);
+	var sound;
+	audio.loadFreesoundBuffers(['24940'], function(status, buffers){
+		if (status == 'success'){
+    		test(buffers);
+		}
+	});
 
-	// for (var i = 0; i < 10; i++){
-	// 	tree.grow();
+	function test(buffers){
+			sound = new Audio.Tree({scene:audio, stream: buffers[0], loop: false});
+    		sound.position = new THREE.Vector3(0, 0, -120);
+    		scene.add(sound);
+    		sound.play();
+    		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+    		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+    		var normalizationMatrix = new THREE.Matrix4();
+    		normalizationMatrix.rotateX(Math.PI / 2);
+   			normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+    		turtleGeometry.applyMatrix(normalizationMatrix);	
+			var dir = new THREE.Vector3(0,1,0);
+			sound.turtle = new Turtle(new THREE.Vector3(0, 0, 0), dir, new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
+			sound.turtle.yaw(90);
+	}
+	
 
+	// var angle = 12.5;
+	// var dis = 10;
+	// var width = 1;
+	// console.log();
+
+	// var ls = new jjs.Lsystem({
+ //           "A": function() {  },
+ //           "F": function() { turtle.go(dis); },
+ //           "L": function() {  },
+ //           "S": function() {  },
+ //           "!": function() { turtle.setWidth((width - this.generation/10))},
+ //           "&": function() { turtle.pitch(angle); },
+ //           "'": function() { turtle.setColor('0x'+Math.floor(Math.random()*16777215).toString(16))},
+ //           "^": function() { turtle.pitch(-angle); },
+ //           "+": function() { turtle.yaw(-angle); },
+ //           "-": function() { turtle.yaw(angle); },
+ //           "rR": function() { turtle.roll(angle); },
+ //           "rL": function() { turtle.roll(-angle); },
+ //           "[" : function(){ turtle.push();},
+ //           "]": function(){ turtle.pop(); }
+
+ //         }, 
+ //         [ {id: "A"}], 
+ //         [ 
+ //           { p: [ {id: "A"} ], 
+ //             s: function() { return [{id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"}, 
+ //             {id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},
+ //             {id:"["},{id:"^"},{id:"F"},{id:"L"},{id:"A"},{id: "]"},{id:"'"}];} 
+ //         	},
+ //         	{ p: [ {id: "F"}],
+ //         	  s: function() { return [{id:"S"},{id:"rR"},{id:"rL"},{id:"rR"},{id:"rR"},{id:"rR"}, {id: "F"}];}
+ //         	},
+ //         	{ p: [ {id: "S"}],
+ //         	  s: function() { return [{id:"F"}, {id: "L"}];}
+ //         	},
+ //         	{ p: [ {id: "L"}],
+ //         	  s: function() { return [{id: "L"}];}
+ //         	}
+
+ //         ]
+ //    );
+  
+	// turtle.pitch(-20);
+
+	// for (var i = 0; i < 5; i++){
+	// 	ls.generate();
+	// 	ls.render();
 	// }
 
-
-
-	
-	
-	var material = new THREE.MeshLambertMaterial({
-      color: 0xFF0000,
-      ambient: 0xFF0000
-    });
-
-    var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-    var normalizationMatrix = new THREE.Matrix4();
-    normalizationMatrix.rotateX(Math.PI / 2);
-    normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-    turtleGeometry.applyMatrix(normalizationMatrix);
-
-	var turtle = new Turtle(new THREE.Vector3(0, 0, -120), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
-
-	var angle = 12.5;
-	var dis = 10;
-	var width = 1;
-	console.log();
-
-	var ls = new jjs.Lsystem({
-           "A": function() {  },
-           "F": function() { turtle.go(dis); },
-           "L": function() {  },
-           "S": function() {  },
-           "!": function() { turtle.setWidth((width - this.generation/10))},
-           "&": function() { turtle.pitch(angle); },
-           "'": function() { turtle.setColor('0x'+Math.floor(Math.random()*16777215).toString(16))},
-           "^": function() { turtle.pitch(-angle); },
-           "+": function() { turtle.yaw(-angle); },
-           "-": function() { turtle.yaw(angle); },
-           "rR": function() { turtle.roll(angle); },
-           "rL": function() { turtle.roll(-angle); },
-           "[" : function(){ turtle.push();},
-           "]": function(){ turtle.pop(); }
-
-         }, 
-         [ {id: "A"}], 
-         [ 
-           { p: [ {id: "A"} ], 
-             s: function() { return [{id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"}, 
-             {id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},
-             {id:"["},{id:"^"},{id:"F"},{id:"L"},{id:"A"},{id: "]"},{id:"'"}];} 
-         	},
-         	{ p: [ {id: "F"}],
-         	  s: function() { return [{id:"S"},{id:"rR"},{id:"rL"},{id:"rR"},{id:"rR"},{id:"rR"}, {id: "F"}];}
-         	},
-         	{ p: [ {id: "S"}],
-         	  s: function() { return [{id:"F"}, {id: "L"}];}
-         	},
-         	{ p: [ {id: "L"}],
-         	  s: function() { return [{id: "L"}];}
-         	}
-
-         ]
-    );
-  
-	turtle.pitch(-20);
-
-	for (var i = 0; i < 5; i++){
-		ls.generate();
-		ls.render();
-	}
-
-  	var meshes = turtle.retrieveMeshes();
-    			for (var _i = 0, _len = meshes.length; _i < _len; _i++) {
-    				var mesh = meshes[_i];
-      				scene.add(mesh);
-    }
+  	
 	
 
-	console.log(turtle, ls);
+	//console.log(turtle, ls);
 
 
 	// floor
 
-	geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
-	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
-
-
-	material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
-
-	mesh = new THREE.Mesh( geometry, material );
-	scene.add( mesh );
+	// geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+	// geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+	// material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+	// mesh = new THREE.Mesh( geometry, material );
+	// scene.add( mesh );
 
 }
 
@@ -288,6 +281,7 @@ function render() {
 
 	controls.update( Date.now() - time);
 	stats.update();
+	audio.update(camera);
 	renderer.render( scene, camera );
 	time = Date.now();
 
