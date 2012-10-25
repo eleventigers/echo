@@ -104,7 +104,7 @@ Audio.Tree.prototype.build = function(){
   	var freqData = this.extractFft(this.analyser);
 	var centroid = this.computeCentroid(freqData);
 	var loudness = this.computeLoudness(freqData);
-	var cent = centroid * loudness  % 360;
+	var cent = 360 / centroid * loudness  ;
 	if (!isFinite(cent)){
 		cent = 0;
 	}
@@ -123,7 +123,7 @@ Audio.Tree.prototype.build = function(){
 		this.turtle.pitch(cent);
 		this.turtle.yaw(cent);
 		//this.turtle.roll(cent);
-		this.turtle.setWidth(loudness/100);
+		this.turtle.setWidth(loudness/1000);
 		mesh = this.turtle.drop(loudness*cent/1000);		
 	}
 		
