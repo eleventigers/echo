@@ -6,7 +6,7 @@ var PointerLockControls = function ( camera ) {
 	pitchObject.add( camera );
 
 	var yawObject = new THREE.Object3D();
-	yawObject.position.y = 10;
+	yawObject.position.y = 0;
 	yawObject.add( pitchObject );
 
 	var moveForward = false;
@@ -15,7 +15,9 @@ var PointerLockControls = function ( camera ) {
 	var moveRight = false;
 
 	var isOnObject = false;
-	var canJump = false;
+	var inAir = 0;
+	var airSmooth = 5;
+	var floor = new THREE.Vector3(0, 10, 0);
 
 	var velocity = new THREE.Vector3();
 
@@ -27,7 +29,7 @@ var PointerLockControls = function ( camera ) {
 
 		var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 		var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
+		
 		yawObject.rotation.y -= movementX * 0.002;
 		pitchObject.rotation.x -= movementY * 0.002;
 
@@ -59,8 +61,7 @@ var PointerLockControls = function ( camera ) {
 				break;
 
 			case 32: // space
-				if ( canJump === true ) velocity.y += 10;
-				canJump = false;
+				if ( inAir === 0 ) velocity.y += 10;
 				break;
 
 		}
@@ -108,10 +109,14 @@ var PointerLockControls = function ( camera ) {
 	};
 
 	this.isOnObject = function ( boolean ) {
-
 		isOnObject = boolean;
-		canJump = boolean;
+		(!boolean) ? ++inAir : inAir = 0;
+	};
 
+	this.floorUpdate = function(point){
+
+		floor = point;	
+	
 	};
 
 	this.update = function ( delta ) {
@@ -123,32 +128,25 @@ var PointerLockControls = function ( camera ) {
 		velocity.x += ( - velocity.x ) * 0.08 * delta;
 		velocity.z += ( - velocity.z ) * 0.08 * delta;
 
-		velocity.y -= 0.25 * delta;
+		if(!isOnObject && inAir > airSmooth){
+			velocity.y -= 0.25 * delta; 
+		} 		
+		if (isOnObject){
+			yawObject.position.y = floor.y+21;
+			velocity.y = Math.max( 0, velocity.y );
+		}
 
 		if ( moveForward ) velocity.z -= 0.12 * delta;
 		if ( moveBackward ) velocity.z += 0.12 * delta;
 
 		if ( moveLeft ) velocity.x -= 0.12 * delta;
 		if ( moveRight ) velocity.x += 0.12 * delta;
-
-		if ( isOnObject === true ) {
-
-			velocity.y = Math.max( 0, velocity.y );
-
-		}
+	
 
 		yawObject.translateX( velocity.x );
 		yawObject.translateY( velocity.y ); 
 		yawObject.translateZ( velocity.z );
-
-		if ( yawObject.position.y < 10 ) {
-
-			velocity.y = 0;
-			yawObject.position.y = 10;
-
-			canJump = true;
-
-		}
+	
 
 	};
 

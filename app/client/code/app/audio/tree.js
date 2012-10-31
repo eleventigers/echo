@@ -19,7 +19,7 @@ Audio.Tree = function (parameters) {
 	this.panner.rolloffFactor = 2;
 
 	this.volume = this.scene.context.createGainNode();
-	this.volume.connect(this.panner);
+	//this.volume.connect(this.panner);
 	this.panner.connect(this.scene.context.destination);
 
 	this.analyser = this.scene.context.createAnalyser();
@@ -29,7 +29,7 @@ Audio.Tree = function (parameters) {
 
 	this.processor = this.scene.context.createJavaScriptNode(1024, 1, 1);
 	this.processor.connect(this.volume);
-	this.processor.onaudioprocess = function(e) { self.posUpdate(); self.build();};
+	this.processor.onaudioprocess = function(e) { self.posUpdate(); };
 
 	this.sampleRate = this.scene.context.sampleRate;
 	this.fftRes = this.sampleRate / this.analyser.fftSize;
@@ -99,7 +99,7 @@ Audio.Tree.prototype.computeLoudness = function(freqData){
 	return val / length;
 };
 
-Audio.Tree.prototype.build = function(){
+Audio.Tree.prototype.build = function(turtle, callback){
 
   	var freqData = this.extractFft(this.analyser);
 	var centroid = this.computeCentroid(freqData);
@@ -110,26 +110,25 @@ Audio.Tree.prototype.build = function(){
 	}
 	var mesh;
 
-	if (loudness > 0){
-		if (this.turtle.stack.length>0) this.turtle.pop();
+	if (loudness > 60){
+		if (turtle.stack.length>0) turtle.pop();
 		this.avgCount++;
 		this.sumLoudness += loudness;
 		this.avgLoudness = this.sumLoudness / this.avgCount;
 		if (loudness > this.avgLoudness){
-			this.turtle.push();
+			turtle.push();
 			cent *= -1;
 			loudness *= -1;
 		}
-		this.turtle.pitch(cent);
-		this.turtle.yaw(cent);
-		//this.turtle.roll(cent);
-		this.turtle.setWidth(loudness/1000);
-		mesh = this.turtle.drop(loudness*cent/1000);		
+		turtle.pitch(cent);
+		//turtle.yaw(cent);
+		// turtle.roll(cent);
+		turtle.setWidth(loudness/10);
+		mesh = turtle.drop(loudness*cent/100);	
+		this.position = turtle.position;
+		return callback(mesh);	
 	}
-		
-	this.parent.add(mesh);
 
-	this.position = this.turtle.position;
 	
 
 }

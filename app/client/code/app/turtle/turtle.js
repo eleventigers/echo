@@ -8,7 +8,7 @@ Turtle = function(position, direction, up, material, geometry, width){
 	
 	this.position = position;
 	this.direction = direction;
-	console.log(this.direction);
+	//console.log(this.direction);
 	this.up = up;
 	this.material = material;
 	this.geometry = geometry;
