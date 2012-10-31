@@ -1,3 +1,6 @@
+// Loaded?
+var loaded = false;
+
 // DOM elements for the game
 var container = document.createElement('div');
 				document.body.appendChild(container);
@@ -10,7 +13,7 @@ var MARGIN = 100, SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.inner
 var SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048, FLOOR = -550, NEAR = 5, FAR = 50000;
 
 // Global objects
-var renderer, camera, scene, controls, projector, plane;
+var renderer, camera, scene, controls, projector, plane, collideWith = new THREE.Object3D(), ray, vector;
 
 // Track mouse
 var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELECTED, SHIFT = false, MOUSEDOWN = false, MOUSEDOWNx = 0;
@@ -19,12 +22,10 @@ var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELE
 var time = Date.now();
 
 // Audio
-var audio, sound, turtle, droppings;
+var audio, sound, turtle;
 
 // Pointer lock
 
-var objects = [];
-var ray, vector;
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
@@ -65,6 +66,7 @@ function setupScene(){
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 
 
+
 	var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
@@ -81,6 +83,9 @@ function setupScene(){
     		test(buffers);
 		}
 	});
+
+	scene.add(collideWith);
+	console.log(collideWith);
 
 	// var material = Physijs.createMaterial(
 	// 			new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'images/plywood.jpg' ) }),
@@ -109,34 +114,32 @@ function setupScene(){
 
 	function test(buffers){	
 
-			sound = new Audio.Tree({scene:audio, stream: buffers[0], loop: false});
+		sound = new Audio.Tree({scene:audio, stream: buffers[0], loop: false});
 
-    		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-    		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-    		var normalizationMatrix = new THREE.Matrix4();
-    			normalizationMatrix.rotateX(Math.PI / 2);
-   				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-    			turtleGeometry.applyMatrix(normalizationMatrix);
-    			turtleGeometry.computeBoundingSphere();	
-			var dir = new THREE.Vector3(0,1,0);
-			turtle = new Turtle(new THREE.Vector3(0, 0, -10), dir, new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
-			turtle.yaw(90);
+		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+		var normalizationMatrix = new THREE.Matrix4();
+			normalizationMatrix.rotateX(Math.PI / 2);
+				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+			turtleGeometry.applyMatrix(normalizationMatrix);
+			turtleGeometry.computeBoundingSphere();	
+		var dir = new THREE.Vector3(0,1,0);
+		turtle = new Turtle(new THREE.Vector3(0, 0, -10), dir, new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
+		turtle.yaw(90);
 
-			droppings = new THREE.Object3D();
-			scene.add(droppings);
-			objects.push(droppings);
+		sound.play();
 
-    		sound.play();
-
-    		// // floor
+    	// // floor
 
 		geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
 		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 		material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 		mesh = new THREE.Mesh( geometry, material );
-		mesh.position.y = -200;
-		droppings.add(mesh);
-		// scene.add( mesh );
+		mesh.position.y = -20;
+		collideWith.add(mesh);
+
+		loaded = true;
+	
 	}
 	
 
@@ -288,27 +291,49 @@ function onWindowResize() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
-function detectCollision() {
+function detectCollision(objects) {
 
-	ray = new THREE.Ray();
-	ray.direction.set( 0, -1, 0 );
+	function collide(objects, axis, origin, radius){
 
-  	ray.origin.copy(controls.getObject().position);
-  	ray.origin.y -= 10;
+		var ax, obj, coll, rad, origin, intersects, distance;
 
-  	var intersects = ray.intersectObjects(droppings.children);
+		(axis) ? ax = axis : ax = false;
+		(objects.hasOwnProperty("children")) ? obj = objects : obj = false;
+		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
+		(radius) ? rad = radius : rad = 20;
 
-  	if (intersects.length > 0) {
-  		var distance = intersects[ 0 ].distance;
-    	if (distance >= 0 && distance <= 20) {
-    		controls.floorUpdate(intersects[0].point);
-    		controls.isOnObject(true);
-    	} else {
-  			controls.isOnObject(false);
-  		}
-  	} else {
-  		controls.isOnObject(false);
-  	}
+		if (ax && obj && coll){
+
+			ray = new THREE.Ray();
+			ray.direction = ax;
+			ray.origin.copy(coll.getObject().position);
+			ax.multiplyScalar(rad / 2);
+			ray.origin.addSelf(ax);
+		
+			intersects = ray.intersectObjects(obj.children);
+
+			if (intersects.length > 0) {
+				var distance = intersects[ 0 ].distance;
+				if (distance >= 0 && distance <= rad) {
+
+					coll.pointUpdate(intersects[0].point, ax);
+					coll.touchObject(true, ax);
+
+				} else {
+
+					coll.touchObject(false, ax);
+				}
+			} else {
+
+				coll.touchObject(false, ax);
+			}
+
+		}
+		
+	}
+
+	collide(objects, new THREE.Vector3(0, -1, 0), controls);
+	
 }
 
 
@@ -318,15 +343,13 @@ function animate() {
 }
 
 function render() {
-
- 	if(droppings) detectCollision();
-	controls.update( Date.now() - time);
-	stats.update();
-	audio.update();
-	renderer.render( scene, camera );
-	time = Date.now();
-
-	if (sound) sound.build(turtle, function(mesh){ if (mesh) droppings.add(mesh); });
-
-	
+	if (loaded) {
+		detectCollision(collideWith);
+		controls.update( Date.now() - time);
+		stats.update();
+		audio.update();
+		renderer.render( scene, camera );
+		time = Date.now();
+		if (sound) sound.build(turtle, function(mesh){ if (mesh) collideWith.add(mesh);});
+	}		
 }

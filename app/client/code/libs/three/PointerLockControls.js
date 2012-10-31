@@ -17,7 +17,7 @@ var PointerLockControls = function ( camera ) {
 	var isOnObject = false;
 	var inAir = 0;
 	var airSmooth = 5;
-	var floor = new THREE.Vector3(0, 10, 0);
+	var floor = new THREE.Vector3(0, 0, 0);
 
 	var velocity = new THREE.Vector3();
 
@@ -108,12 +108,12 @@ var PointerLockControls = function ( camera ) {
 
 	};
 
-	this.isOnObject = function ( boolean ) {
+	this.touchObject = function ( boolean, axis ) {
 		isOnObject = boolean;
 		(!boolean) ? ++inAir : inAir = 0;
 	};
 
-	this.floorUpdate = function(point){
+	this.pointUpdate = function(point, axis){
 
 		floor = point;	
 	
