@@ -14,12 +14,12 @@ Audio.Tree = function (parameters) {
 	this.directionalSource = false;
 
 	this.panner = this.scene.context.createPanner();
-	this.panner.refDistance = 10.0;
+	this.panner.refDistance = 20.0;
 	this.panner.panningModel = 1;
 	this.panner.rolloffFactor = 2;
 
 	this.volume = this.scene.context.createGainNode();
-	//this.volume.connect(this.panner);
+	this.volume.connect(this.panner);
 	this.panner.connect(this.scene.context.destination);
 
 	this.analyser = this.scene.context.createAnalyser();
@@ -120,10 +120,10 @@ Audio.Tree.prototype.build = function(turtle, callback){
 			cent *= -100;
 			loudness *= -0.1;
 		}
-		turtle.pitch(cent);
-		turtle.yaw(cent);
+		//turtle.pitch(cent);
+		turtle.yaw(cent/2);
 		//turtle.roll(cent);
-		turtle.setWidth(loudness/10);
+		turtle.setWidth(loudness/100);
 		mesh = turtle.drop(loudness*cent/100);	
 		this.position = turtle.position;
 		return callback(mesh);	

@@ -22,7 +22,7 @@ var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELE
 var time = Date.now();
 
 // Audio
-var audio, sound, turtle;
+var audio, bufflist, sound, turtle;
 
 // Pointer lock
 
@@ -55,6 +55,7 @@ function setupRenderer() {
 	renderer.physicallyBasedShading = false;
 	container.appendChild(renderer.domElement);
 	window.addEventListener( 'resize', onWindowResize, false );
+	window.addEventListener( 'mousedown', onDocumentMouseDown, false );
 
 }
 
@@ -65,7 +66,7 @@ function setupScene(){
 
 	camera = new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 2000 );
 
-	helper = new THREE.ArrowHelper(new THREE.Vector3(), camera.position);
+	helper = new THREE.ArrowHelper(new THREE.Vector3());
 	scene.add(helper);
 
 	var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
@@ -79,50 +80,24 @@ function setupScene(){
 	audio = new Audio.Scene();
 	audio.attach(camera);
 
-	audio.loadBuffers(["/sounds/nike_addiction_0.6.mp3"], function(status, buffers){
+	audio.loadBuffers(["/sounds/woodoverblade.wav"], function(status, buffers){
 		if (status == 'success'){
-    		test(buffers);
+    		bufflist = buffers;
+    		loaded = true;
 		}
 	});
 
 	scene.add(collideWith);
-	console.log(collideWith);
-
-	
-
-	function test(buffers){	
-
-		sound = new Audio.Tree({scene:audio, stream: buffers[0], loop: false});
-
-		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-		var normalizationMatrix = new THREE.Matrix4();
-			normalizationMatrix.rotateX(Math.PI / 2);
-				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-			turtleGeometry.applyMatrix(normalizationMatrix);
-			turtleGeometry.computeBoundingSphere();	
-		var dir = new THREE.Vector3(0,1,0);
-		turtle = new Turtle(new THREE.Vector3(0, 0, -10), dir, new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
-		//turtle.yaw(90);
-
-		sound.play();
-
-    	// // floor
-
-		geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
-		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
-		material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
-		mesh = new THREE.Mesh( geometry, material );
-		mesh.position.y = -100;
-		collideWith.add(mesh);
-
-		loaded = true;
-	
-	}
-	
 
 
+	// floor
 
+	geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+	material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+	mesh = new THREE.Mesh( geometry, material );
+	mesh.position.y = -100;
+	collideWith.add(mesh);
 
 
 }
@@ -217,18 +192,43 @@ function onWindowResize() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
+function onDocumentMouseDown( event ) {
+	if (loaded){
+		event.preventDefault();
+		var projector = new THREE.Projector();
+		var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+		projector.unprojectVector( vector, camera );
+
+		var direction = vector.subSelf( controls.getObject().position.clone() ).normalize();
+		var origin = controls.getObject().position.clone();
+		helper.position = origin;
+		helper.setDirection(direction);	
+
+		sound = new Audio.Tree({scene:audio, stream: bufflist[0], loop: false});
+		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+		var normalizationMatrix = new THREE.Matrix4();
+		normalizationMatrix.rotateX(Math.PI / 2);
+		normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+		turtleGeometry.applyMatrix(normalizationMatrix);
+		turtleGeometry.computeBoundingSphere();	
+		turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1);
+		sound.play();	
+	}	
+}
+
+
 function detectCollision(objects) {
 
 	function collide(objects, origin){
 
-		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vector, results;
+		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices;
 		
 		(objects.hasOwnProperty("children")) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
 
-
 		if (obj && coll){
-			var vertices = coll.getObject().geometry.vertices;
+			vertices = coll.getObject().geometry.vertices;
 			rad = coll.getObject().boundRadius+1;
 			var directions = {
 				"up": [4,1],
@@ -248,10 +248,6 @@ function detectCollision(objects) {
 				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
 				directionVector = globalVertex.subSelf( coll.getObject().position );
 				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize() );
-				if (directions[key].length === 1) {
-					helper.position = coll.getObject().position.clone();
-					helper.setDirection(directionVector.clone());
-				}
 				intersects = ray.intersectObjects(obj.children);
 				if (intersects.length > 0) {
 					distance = intersects[ 0 ].distance;
@@ -263,16 +259,11 @@ function detectCollision(objects) {
 					}
 				} else {
 					coll.touchObject(false, key);
-				}	
-				
-			}				
-			
-		}
-		
+				}		
+			}					
+		}	
 	}
-
 	collide(objects, controls);
-	
 }
 
 

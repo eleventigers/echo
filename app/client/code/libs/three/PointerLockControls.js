@@ -12,14 +12,14 @@ var PointerLockControls = function ( camera ) {
 	yawObject.position.y = 0;
 	yawObject.add( pitchObject );
 
-
 	var moveForward = false;
 	var moveBackward = false;
 	var moveLeft = false;
 	var moveRight = false;
 	var inAir = 0;
 	var airSmooth = 5;
-	var step = 0;
+	var stepsZ = 0;
+	var stepsX = 0;
 	var isOnObject = false;
 	var belowObject = false;
 	var frontObject = false;
@@ -75,9 +75,9 @@ var PointerLockControls = function ( camera ) {
 				break;
 
 			case 32: // space
-				if ( inAir === 0 ) velocity.y += yawObject.boundRadius - 1;
+				//jump depends on how fast this is running
+				if ( inAir === 0 ) velocity.y += yawObject.boundRadius/2 - 1 + (velocity.z*velocity.z/2);
 				break;
-
 		}
 
 	};
@@ -124,12 +124,7 @@ var PointerLockControls = function ( camera ) {
 		return yawObject;
 	};
 
-	this.getCollObject = function () {
-		return collObject;
-	};
-
 	this.touchObject = function ( boolean, direction ) {
-
 		switch(direction){
 			case "up": 
 				belowObject = boolean;
@@ -150,25 +145,10 @@ var PointerLockControls = function ( camera ) {
 			case "right":
 				rightObject = boolean;
 				break;
-			case "downLeft":
-				downLeftObject = boolean;
-				break;
-			case "downRight":
-				downRightObject = boolean;
-				break;
-			case "upLeft":
-				upLeftObject = boolean;
-				break;
-			case "upRight":
-				upRightObject = boolean;
-				break;
-		}
-		
+		}		
 	};
 
-
 	this.pointUpdate = function(point, direction){
-
 		switch(direction){
 			case "up": 
 				ceiling = point;
@@ -188,20 +168,7 @@ var PointerLockControls = function ( camera ) {
 			case "right":
 				right = point;
 				break;
-			case "downLeft":
-				downLeft = point;
-				break;
-			case "downRight":
-				downRight = point;
-				break;
-			case "upLeft":
-				upLeft = point;
-				break;
-			case "upRight":
-				upRight = point;
-				break;
 		}
-	
 	};
 
 	this.update = function ( delta ) {
@@ -224,6 +191,7 @@ var PointerLockControls = function ( camera ) {
 		if (belowObject){
 			if(!isOnObject && velocity.y > 0) {
 				yawObject.position.y = ceiling.y-yawObject.boundRadius; 
+				//to make it more natural shake the object on head bump 
 				velocity.x += Math.random()*3-1;
 				velocity.z += Math.random()*3-1;
 				pitchObject.rotation.x += Math.random()*0.1;
@@ -232,30 +200,24 @@ var PointerLockControls = function ( camera ) {
 			velocity.y -= 0.25 * delta; 
 		}
 
-		// if ( moveForward && isOnObject) {
-		// 	var rand = Math.random();
-		// 	var mult = 40;
-		// 	var acc = 0.005;
-		// 	var randStep = Math.random()*mult;
-		// 	++step;
-		// 	if (step <= (randStep / 2)-1) {
-		// 		pitchObject.rotation.z -= rand * acc * 0.5 * delta;
-		// 		pitchObject.rotation.x -= rand * acc * delta;
-		// 	}
-		// 	if (step >= (randStep / 2) && step < randStep) {
-		// 		pitchObject.rotation.z += rand * acc * 0.5 * delta;
-		// 		pitchObject.rotation.x += rand * acc * delta;
-		// 	}
-		// 	if (step >= mult){
-		// 		step = 0;
-		// 	}				
-		// } 
+		//sprint initially increses accelaration or decreases it when stopping
+		if (moveForward) velocity.z -= 0.12 * delta + stepsZ * 0.001;		
+		if ( moveBackward) velocity.z += 0.12 * delta + stepsZ * 0.001;
 
-		if (moveForward) velocity.z -= 0.12 * delta;
-		if ( moveBackward) velocity.z += 0.12 * delta;
+		if ( moveLeft ) velocity.x -= 0.12 * delta + stepsX * 0.001;
+		if ( moveRight ) velocity.x += 0.12 * delta + stepsX * 0.001;
 
-		if ( moveLeft ) velocity.x -= 0.12 * delta;
-		if ( moveRight ) velocity.x += 0.12 * delta;
+		if (velocity.z*velocity.z >= 0.1) {
+			if (stepsZ < 100) ++stepsZ;
+		} else {
+			if (stepsZ > 0) --stepsZ;
+		} 
+
+		if (velocity.x*velocity.x >= 0.1) {
+			if (stepsX < 100) ++stepsX;
+		} else {
+			if (stepsX > 0) --stepsX;
+		} 	
 
 		if (frontObject && front.distanceToSquared(yawObject.position) < yawObject.boundRadius) {
 			(moveForward) ? velocity.z = 0 : velocity.z = 0.1*delta;
@@ -273,6 +235,7 @@ var PointerLockControls = function ( camera ) {
 			(moveRight) ? velocity.x = 0 : velocity.x = -0.1*delta;
 		}
 
+		//console.log(velocity.z, stepsZ);
 
 		yawObject.translateX( velocity.x );
 		yawObject.translateY( velocity.y ); 
