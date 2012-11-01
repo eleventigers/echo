@@ -6,6 +6,7 @@ var PointerLockControls = function ( camera ) {
 	pitchObject.add( camera );
 
 	var yawObject = new THREE.Object3D();
+
 	yawObject.position.y = 0;
 	yawObject.add( pitchObject );
 
@@ -15,9 +16,15 @@ var PointerLockControls = function ( camera ) {
 	var moveRight = false;
 
 	var isOnObject = false;
+	var belowObject = false;
+	var frontObject = false;
+	var backObject = false;
 	var inAir = 0;
 	var airSmooth = 5;
 	var floor = new THREE.Vector3(0, 0, 0);
+	var ceiling = new THREE.Vector3(0, 0, 0);
+	var front = new THREE.Vector3(0, 0, 0);
+	var back = new THREE.Vector3(0, 0, 0);
 
 	var velocity = new THREE.Vector3();
 
@@ -96,6 +103,10 @@ var PointerLockControls = function ( camera ) {
 
 	};
 
+	var sign = function(number){
+		return number > 0 ? 1 : number == 0 ? 0 : -1;
+	};
+
 	document.addEventListener( 'mousemove', onMouseMove, false );
 	document.addEventListener( 'keydown', onKeyDown, false );
 	document.addEventListener( 'keyup', onKeyUp, false );
@@ -103,19 +114,68 @@ var PointerLockControls = function ( camera ) {
 	this.enabled = false;
 
 	this.getObject = function () {
-
 		return yawObject;
-
 	};
 
 	this.touchObject = function ( boolean, axis ) {
-		isOnObject = boolean;
-		(!boolean) ? ++inAir : inAir = 0;
+		
+		if (sign(axis.x) === 1 ){
+
+		} 
+
+		if (sign(axis.x) === -1 ){
+
+		} 
+
+		if (sign(axis.y) === 1 ){
+			belowObject = boolean;
+		} 
+
+		if (sign(axis.y) === -1 ){
+			isOnObject = boolean;
+			(!boolean) ? ++inAir : inAir = 0;
+		} 
+
+		if (sign(axis.z) === 1 ){
+			if (boolean) console.log("front", boolean);
+			frontObject = boolean;
+		} 
+
+		if (sign(axis.z) === -1 ){
+			if (boolean) console.log("back", boolean);
+			backObject = boolean;
+		}
+		
+
+		
 	};
+
 
 	this.pointUpdate = function(point, axis){
 
-		floor = point;	
+		if (sign(axis.x) === 1 ){
+
+		} 
+
+		if (sign(axis.x) === -1 ){
+
+		} 
+
+		if (sign(axis.y) === 1 ){
+			ceiling = point;
+		} 
+
+		if (sign(axis.y) === -1 ){
+			floor = point;
+		} 
+
+		if (sign(axis.z) === 1 ){
+
+		} 
+
+		if (sign(axis.z) === -1 ){
+
+		}	
 	
 	};
 
@@ -134,6 +194,16 @@ var PointerLockControls = function ( camera ) {
 		if (isOnObject){
 			yawObject.position.y = floor.y+21;
 			velocity.y = Math.max( 0, velocity.y );
+		}
+
+		if (belowObject ){
+			if(!isOnObject && velocity.y > 0) {
+				yawObject.position.y = ceiling.y-21; 
+				velocity.x += Math.random()*3-1;
+				velocity.z += Math.random()*3-1;
+			}
+			if (velocity.y > 0) velocity.y = 0;
+			velocity.y -= 0.25 * delta; 
 		}
 
 		if ( moveForward ) velocity.z -= 0.12 * delta;

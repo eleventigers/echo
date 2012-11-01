@@ -13,7 +13,7 @@ var MARGIN = 100, SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.inner
 var SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048, FLOOR = -550, NEAR = 5, FAR = 50000;
 
 // Global objects
-var renderer, camera, scene, controls, projector, plane, collideWith = new THREE.Object3D(), ray, vector;
+var renderer, camera, scene, controls, projector, plane, collideWith = new THREE.Object3D(), ray, vector, helper;
 
 // Track mouse
 var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELECTED, SHIFT = false, MOUSEDOWN = false, MOUSEDOWNx = 0;
@@ -65,7 +65,8 @@ function setupScene(){
 
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
 
-
+	helper = new THREE.ArrowHelper(new THREE.Vector3(), camera.position);
+	scene.add(helper);
 
 	var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 1, 1, 1 );
@@ -87,29 +88,6 @@ function setupScene(){
 	scene.add(collideWith);
 	console.log(collideWith);
 
-	// var material = Physijs.createMaterial(
-	// 			new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'images/plywood.jpg' ) }),
-	// 			.9, // medium friction
-	// 			.3 // low restitution
-	// );
-	// var ground = new Physijs.BoxMesh(
-	// 	new THREE.CubeGeometry(200, 1, 200),
-	// 	material,
-	// 	0 // mass
-	// );
-	// ground.position.y = -20;
-	// scene.add( ground );
-
-
-	// box = new Physijs.BoxMesh(
-	// 	new THREE.CubeGeometry(2, 2, 2),
-	// 	new THREE.MeshLambertMaterial({color: 0x33FF66,ambient: 0x33FF66}),
-	// 	1 // mass
-	// );
-	
-	// box.position.y = 20;
-	// box.add(camera);
-	// scene.add(box);
 	
 
 	function test(buffers){	
@@ -143,59 +121,6 @@ function setupScene(){
 	}
 	
 
-	// var angle = 12.5;
-	// var dis = 10;
-	// var width = 1;
-	// console.log();
-
-	// var ls = new jjs.Lsystem({
- //           "A": function() {  },
- //           "F": function() { turtle.go(dis); },
- //           "L": function() {  },
- //           "S": function() {  },
- //           "!": function() { turtle.setWidth((width - this.generation/10))},
- //           "&": function() { turtle.pitch(angle); },
- //           "'": function() { turtle.setColor('0x'+Math.floor(Math.random()*16777215).toString(16))},
- //           "^": function() { turtle.pitch(-angle); },
- //           "+": function() { turtle.yaw(-angle); },
- //           "-": function() { turtle.yaw(angle); },
- //           "rR": function() { turtle.roll(angle); },
- //           "rL": function() { turtle.roll(-angle); },
- //           "[" : function(){ turtle.push();},
- //           "]": function(){ turtle.pop(); }
-
- //         }, 
- //         [ {id: "A"}], 
- //         [ 
- //           { p: [ {id: "A"} ], 
- //             s: function() { return [{id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"}, 
- //             {id:"["},{id:"!"},{id:"&"},{id:"F"},{id:"L"},{id:"A"},{id:"]"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},{id:"rR"},
- //             {id:"["},{id:"^"},{id:"F"},{id:"L"},{id:"A"},{id: "]"},{id:"'"}];} 
- //         	},
- //         	{ p: [ {id: "F"}],
- //         	  s: function() { return [{id:"S"},{id:"rR"},{id:"rL"},{id:"rR"},{id:"rR"},{id:"rR"}, {id: "F"}];}
- //         	},
- //         	{ p: [ {id: "S"}],
- //         	  s: function() { return [{id:"F"}, {id: "L"}];}
- //         	},
- //         	{ p: [ {id: "L"}],
- //         	  s: function() { return [{id: "L"}];}
- //         	}
-
- //         ]
- //    );
-  
-	// turtle.pitch(-20);
-
-	// for (var i = 0; i < 5; i++){
-	// 	ls.generate();
-	// 	ls.render();
-	// }
-
-  	
-	
-
-	//console.log(turtle, ls);
 
 
 
@@ -269,6 +194,7 @@ function setupControls() {
 
 	controls = new PointerLockControls( camera );
 	scene.add( controls.getObject());
+	
 
 	} else {
 		instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
@@ -295,30 +221,30 @@ function detectCollision(objects) {
 
 	function collide(objects, axis, origin, radius){
 
-		var ax, obj, coll, rad, origin, intersects, distance;
-
+		var ax, obj, coll, rad, origin, intersects, distance, test;
 		(axis) ? ax = axis : ax = false;
+		
 		(objects.hasOwnProperty("children")) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
 		(radius) ? rad = radius : rad = 20;
 
+
 		if (ax && obj && coll){
 
 			ray = new THREE.Ray();
-			ray.direction = ax;
-			ray.origin.copy(coll.getObject().position);
-			ax.multiplyScalar(rad / 2);
-			ray.origin.addSelf(ax);
-		
+
+			ray.direction = ax.clone();
+			ray.origin = coll.getObject().position.clone();
+			ray.origin.addSelf(ax.clone().multiplyScalar(rad / 2));
+			helper.setDirection(ray.direction.clone());
+			helper.position = ray.origin.clone();
 			intersects = ray.intersectObjects(obj.children);
 
 			if (intersects.length > 0) {
 				var distance = intersects[ 0 ].distance;
 				if (distance >= 0 && distance <= rad) {
-
 					coll.pointUpdate(intersects[0].point, ax);
 					coll.touchObject(true, ax);
-
 				} else {
 
 					coll.touchObject(false, ax);
@@ -333,6 +259,9 @@ function detectCollision(objects) {
 	}
 
 	collide(objects, new THREE.Vector3(0, -1, 0), controls);
+	collide(objects, new THREE.Vector3(0, 1, 0), controls);
+	collide(objects, new THREE.Vector3(0, 0, -1), controls);
+	collide(objects, new THREE.Vector3(0, 0, 1), controls);
 	
 }
 
@@ -351,5 +280,8 @@ function render() {
 		renderer.render( scene, camera );
 		time = Date.now();
 		if (sound) sound.build(turtle, function(mesh){ if (mesh) collideWith.add(mesh);});
+		// var rot = controls.getObject().rotation.clone();
+		// console.log(rot.x, rot.y, rot.z); 
 	}		
 }
+
