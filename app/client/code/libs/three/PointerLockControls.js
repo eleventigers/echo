@@ -5,26 +5,34 @@ var PointerLockControls = function ( camera ) {
 	var pitchObject = new THREE.Object3D();
 	pitchObject.add( camera );
 
-	var yawObject = new THREE.Object3D();
+	var cubeGeometry = new THREE.CubeGeometry(10,10,10,1,1,1);
+	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
+	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
+
 
 	yawObject.position.y = 0;
 	yawObject.add( pitchObject );
+
+	
 
 	var moveForward = false;
 	var moveBackward = false;
 	var moveLeft = false;
 	var moveRight = false;
-
+	var inAir = 0;
+	var airSmooth = 5;
 	var isOnObject = false;
 	var belowObject = false;
 	var frontObject = false;
 	var backObject = false;
-	var inAir = 0;
-	var airSmooth = 5;
+	var leftObject = false;
+	var rightObject = false;
 	var floor = new THREE.Vector3(0, 0, 0);
 	var ceiling = new THREE.Vector3(0, 0, 0);
 	var front = new THREE.Vector3(0, 0, 0);
 	var back = new THREE.Vector3(0, 0, 0);
+	var left = new THREE.Vector3(0, 0, 0);
+	var right = new THREE.Vector3(0, 0, 0);
 
 	var velocity = new THREE.Vector3();
 
@@ -117,65 +125,83 @@ var PointerLockControls = function ( camera ) {
 		return yawObject;
 	};
 
-	this.touchObject = function ( boolean, axis ) {
-		
-		if (sign(axis.x) === 1 ){
+	this.getCollObject = function () {
+		return collObject;
+	};
 
-		} 
+	this.touchObject = function ( boolean, direction ) {
 
-		if (sign(axis.x) === -1 ){
-
-		} 
-
-		if (sign(axis.y) === 1 ){
-			belowObject = boolean;
-		} 
-
-		if (sign(axis.y) === -1 ){
-			isOnObject = boolean;
-			(!boolean) ? ++inAir : inAir = 0;
-		} 
-
-		if (sign(axis.z) === 1 ){
-			if (boolean) console.log("front", boolean);
-			frontObject = boolean;
-		} 
-
-		if (sign(axis.z) === -1 ){
-			if (boolean) console.log("back", boolean);
-			backObject = boolean;
+		switch(direction){
+			case "up": 
+				belowObject = boolean;
+				break;
+			case "down":
+				isOnObject = boolean;
+				(!boolean) ? ++inAir : inAir = 0;
+				break;
+			case "front":
+				frontObject = boolean;
+				break;
+			case "back":
+				backObject = boolean;
+				break;
+			case "left":
+				leftObject = boolean;
+				break;
+			case "right":
+				rightObject = boolean;
+				break;
+			case "downLeft":
+				downLeftObject = boolean;
+				break;
+			case "downRight":
+				downRightObject = boolean;
+				break;
+			case "upLeft":
+				upLeftObject = boolean;
+				break;
+			case "upRight":
+				upRightObject = boolean;
+				break;
 		}
-		
-
 		
 	};
 
 
-	this.pointUpdate = function(point, axis){
+	this.pointUpdate = function(point, direction){
 
-		if (sign(axis.x) === 1 ){
-
-		} 
-
-		if (sign(axis.x) === -1 ){
-
-		} 
-
-		if (sign(axis.y) === 1 ){
-			ceiling = point;
-		} 
-
-		if (sign(axis.y) === -1 ){
-			floor = point;
-		} 
-
-		if (sign(axis.z) === 1 ){
-
-		} 
-
-		if (sign(axis.z) === -1 ){
-
-		}	
+		switch(direction){
+			case "up": 
+				ceiling = point;
+				break;
+			case "down":
+				floor = point;
+				break;
+			case "front":
+				front = point;
+				break;
+			case "back":
+				back = point;
+				break;
+			case "left":
+				left = point;
+				break;
+			case "right":
+				right = point;
+				break;
+			case "downLeft":
+				downLeft = point;
+				break;
+			case "downRight":
+				downRight = point;
+				break;
+			case "upLeft":
+				upLeft = point;
+				break;
+			case "upRight":
+				upRight = point;
+				break;
+		}
 	
 	};
 
@@ -192,13 +218,13 @@ var PointerLockControls = function ( camera ) {
 			velocity.y -= 0.25 * delta; 
 		} 		
 		if (isOnObject){
-			yawObject.position.y = floor.y+21;
+			yawObject.position.y = floor.y+4;
 			velocity.y = Math.max( 0, velocity.y );
 		}
 
-		if (belowObject ){
+		if (belowObject){
 			if(!isOnObject && velocity.y > 0) {
-				yawObject.position.y = ceiling.y-21; 
+				yawObject.position.y = ceiling.y-4; 
 				velocity.x += Math.random()*3-1;
 				velocity.z += Math.random()*3-1;
 			}
@@ -206,12 +232,28 @@ var PointerLockControls = function ( camera ) {
 			velocity.y -= 0.25 * delta; 
 		}
 
-		if ( moveForward ) velocity.z -= 0.12 * delta;
-		if ( moveBackward ) velocity.z += 0.12 * delta;
+		if ( moveForward) velocity.z -= 0.12 * delta;
+		if ( moveBackward) velocity.z += 0.12 * delta;
 
 		if ( moveLeft ) velocity.x -= 0.12 * delta;
 		if ( moveRight ) velocity.x += 0.12 * delta;
-	
+
+		if (frontObject && front.distanceToSquared(yawObject.position) < 6) {
+			(moveForward) ? velocity.z = 0 : velocity.z = 0.1*delta;
+		}
+
+		if (moveBackward && backObject && back.distanceToSquared(yawObject.position) < 6) {
+			(moveBackward) ? velocity.z = 0 : velocity.z = -0.1*delta;
+		}
+
+		if (leftObject && left.distanceToSquared(yawObject.position) < 6 ) {
+			(moveLeft) ? velocity.x = 0 : velocity.x = 0.1*delta;
+			
+		}
+		if (moveRight && rightObject && right.distanceToSquared(yawObject.position) < 6 ) {
+			(moveRight) ? velocity.x = 0 : velocity.x = -0.1*delta;
+		}
+
 
 		yawObject.translateX( velocity.x );
 		yawObject.translateY( velocity.y ); 

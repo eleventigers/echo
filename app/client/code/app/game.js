@@ -113,7 +113,7 @@ function setupScene(){
 		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 		material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 		mesh = new THREE.Mesh( geometry, material );
-		mesh.position.y = -20;
+		mesh.position.y = -50;
 		collideWith.add(mesh);
 
 		loaded = true;
@@ -219,49 +219,59 @@ function onWindowResize() {
 
 function detectCollision(objects) {
 
-	function collide(objects, axis, origin, radius){
+	function collide(objects, origin, radius){
 
-		var ax, obj, coll, rad, origin, intersects, distance, test;
-		(axis) ? ax = axis : ax = false;
+		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vector, results;
 		
 		(objects.hasOwnProperty("children")) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
-		(radius) ? rad = radius : rad = 20;
+		(radius) ? rad = radius : rad = 12;
 
 
-		if (ax && obj && coll){
-
-			ray = new THREE.Ray();
-
-			ray.direction = ax.clone();
-			ray.origin = coll.getObject().position.clone();
-			ray.origin.addSelf(ax.clone().multiplyScalar(rad / 2));
-			helper.setDirection(ray.direction.clone());
-			helper.position = ray.origin.clone();
-			intersects = ray.intersectObjects(obj.children);
-
-			if (intersects.length > 0) {
-				var distance = intersects[ 0 ].distance;
-				if (distance >= 0 && distance <= rad) {
-					coll.pointUpdate(intersects[0].point, ax);
-					coll.touchObject(true, ax);
-				} else {
-
-					coll.touchObject(false, ax);
+		if (obj && coll){
+			var vertices = coll.getObject().geometry.vertices;
+			var directions = {
+				"up": [4,1],
+				"down": [6,2],
+				"front": [3,4],
+				"back": [7,0],
+				"left": [5,6],
+				"right": [1,2],
+				// "downLeft": [6],
+				// "upLeft": [4],
+				// "downRight": [3],
+				// "upRight": [1],
+				// "backleft": [7]
+			};
+			for (key in directions){
+				(directions[key].length > 1) ? localVertex =  vertices[directions[key][0]].clone().addSelf(vertices[directions[key][1]].clone()) : localVertex = vertices[directions[key][0]].clone();	
+				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
+				directionVector = globalVertex.subSelf( coll.getObject().position );
+				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize() );
+				if (directions[key].length === 1) {
+					helper.position = coll.getObject().position.clone();
+					helper.setDirection(directionVector.clone());
 				}
-			} else {
-
-				coll.touchObject(false, ax);
-			}
-
+				intersects = ray.intersectObjects(obj.children);
+				if (intersects.length > 0) {
+					distance = intersects[ 0 ].distance;
+					if (distance >= 0 && distance <= rad) {	
+						coll.pointUpdate(intersects[0].point, key);
+						coll.touchObject(true, key);
+					} else {
+						coll.touchObject(false, key);
+					}
+				} else {
+					coll.touchObject(false, key);
+				}	
+				
+			}				
+			
 		}
 		
 	}
 
-	collide(objects, new THREE.Vector3(0, -1, 0), controls);
-	collide(objects, new THREE.Vector3(0, 1, 0), controls);
-	collide(objects, new THREE.Vector3(0, 0, -1), controls);
-	collide(objects, new THREE.Vector3(0, 0, 1), controls);
+	collide(objects, controls);
 	
 }
 

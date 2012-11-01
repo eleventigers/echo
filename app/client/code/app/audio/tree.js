@@ -121,8 +121,8 @@ Audio.Tree.prototype.build = function(turtle, callback){
 			loudness *= -1;
 		}
 		turtle.pitch(cent);
-		//turtle.yaw(cent);
-		// turtle.roll(cent);
+		turtle.yaw(cent);
+		//turtle.roll(cent);
 		turtle.setWidth(loudness/10);
 		mesh = turtle.drop(loudness*cent/100);	
 		this.position = turtle.position;
