@@ -203,8 +203,9 @@ function onDocumentMouseDown( event ) {
 		var origin = controls.getObject().position.clone();
 		helper.position = origin;
 		helper.setDirection(direction);	
-
-		sound = new Audio.Tree({scene:audio, stream: bufflist[0], loop: false});
+		var randBuff = Math.floor(Math.random()*bufflist.length);
+		console.log(randBuff);
+		sound = new Audio.Tree({scene:audio, stream: bufflist[randBuff], loop: false});
 		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
 		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
 		var normalizationMatrix = new THREE.Matrix4();

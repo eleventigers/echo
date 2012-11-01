@@ -46,6 +46,8 @@ Audio.Tree = function (parameters) {
 	this.sumLoudness = 0;
 	this.avgCount = 0;
 
+	this.avgCentroid = 0;
+	this.sumCentroid = 0;
 
 }
 
@@ -108,23 +110,80 @@ Audio.Tree.prototype.build = function(turtle, callback){
 	if (!isFinite(cent)){
 		cent = 0;
 	}
+
+	// var colorIndex = Math.floor(Math.tan(centroid) % 12);
+	// var color;
+
+	// console.log(Math.sin(centroid));
+
+	// switch(colorIndex){
+	// 	case 0:
+	// 		color = 0x81d743;
+	// 		break;
+	// 	case 1:
+	// 		color = 0xc4d743;
+	// 		break;
+	// 	case 2:
+	// 		color = 0xd7b243;
+	// 		break;
+	// 	case 3:
+	// 		color = 0xd76943;
+	// 		break;
+	// 	case 4:
+	// 		color = 0xd74343;
+	// 		break;
+	// 	case 5:
+	// 		color = 0xd74388 ;
+	// 		break;
+	// 	case 6:
+	// 		color = 0xcb43d7 ;
+	// 		break;
+	// 	case 7:
+	// 		color = 0x8143d7 ;
+	// 		break;
+	// 	case 8:
+	// 		color = 0x435bd7 ;
+	// 		break;
+	// 	case 9:
+	// 		color = 0x4393d7;
+	// 		break;
+	// 	case 10:
+	// 		color = 0x43d7d2 ;
+	// 		break;
+	// 	case 11:
+	// 		color = 0x5f8f93;
+	// 		break;
+	// 	case 12:
+	// 		color = 0x52ba8a;
+	// 		break;
+	// }
+
 	var mesh;
+	if (loudness < 10){
+		turtle.penUp;
+		turtle.drop(loudness*cent/100);
+		if (turtle.stack.length>0) turtle.pop();
+	}
 
 	if (loudness > 10){
+		turtle.penDown;
 		if (turtle.stack.length>0) turtle.pop();
 		this.avgCount++;
 		this.sumLoudness += loudness;
 		this.avgLoudness = this.sumLoudness / this.avgCount;
+		this.sumCentroid += centroid;
+		this.avgCentroid = this.sumCentroid / this.avgCount;
 		if (loudness > this.avgLoudness){
 			turtle.push();
-			cent *= -100;
-			loudness *= -0.1;
+			cent *= -10 / loudness;
+			loudness *= -1;
 		}
-		//turtle.pitch(cent);
-		turtle.yaw(cent/2);
+		turtle.pitch(cent);
+		turtle.yaw(cent);
 		//turtle.roll(cent);
-		turtle.setWidth(loudness/100);
-		mesh = turtle.drop(loudness*cent/100);	
+		turtle.setWidth(Math.sin(cent)*loudness/10);
+		// turtle.setColor(color);
+		mesh = turtle.drop(cent*loudness/100);	
 		this.position = turtle.position;
 		return callback(mesh);	
 	}

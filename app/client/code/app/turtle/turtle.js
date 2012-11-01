@@ -27,16 +27,6 @@ Turtle.prototype.go = function(distance){
 	var newPosition;
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance));
-    if (this.drawing) {
-    	this.droppings.push({
-          from: this.position,
-          to: newPosition,
-          material: this.material,
-          geometry: this.geometry,
-          width: this.width
-        });
-    }
-
     return this.position = newPosition;
 };
 Turtle.prototype.drop = function(distance){
@@ -94,10 +84,9 @@ Turtle.prototype.setMaterial = function(material) {
   	this.material = material;
 };
 Turtle.prototype.setColor = function(hex) {
-	var hexInt = parseInt(hex);
   	return this.setMaterial(new THREE.MeshLambertMaterial({
-    	color: hexInt,
-    	ambient: hexInt
+    	color: hex,
+    	ambient: hex
   	}));
 };
 Turtle.prototype.retrieveMeshes = function() {
