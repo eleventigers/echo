@@ -63,7 +63,7 @@ function setupScene(){
 	scene = new THREE.Scene();
 	scene.fog = new THREE.FogExp2( 0xBCD2EE, 0.0001 );
 
-	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+	camera = new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 2000 );
 
 	helper = new THREE.ArrowHelper(new THREE.Vector3(), camera.position);
 	scene.add(helper);
@@ -103,7 +103,7 @@ function setupScene(){
 			turtleGeometry.computeBoundingSphere();	
 		var dir = new THREE.Vector3(0,1,0);
 		turtle = new Turtle(new THREE.Vector3(0, 0, -10), dir, new THREE.Vector3(0, 0, 1), material, turtleGeometry, .1);
-		turtle.yaw(90);
+		//turtle.yaw(90);
 
 		sound.play();
 
@@ -113,7 +113,7 @@ function setupScene(){
 		geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 		material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 		mesh = new THREE.Mesh( geometry, material );
-		mesh.position.y = -50;
+		mesh.position.y = -100;
 		collideWith.add(mesh);
 
 		loaded = true;
@@ -219,17 +219,17 @@ function onWindowResize() {
 
 function detectCollision(objects) {
 
-	function collide(objects, origin, radius){
+	function collide(objects, origin){
 
 		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vector, results;
 		
 		(objects.hasOwnProperty("children")) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
-		(radius) ? rad = radius : rad = 12;
 
 
 		if (obj && coll){
 			var vertices = coll.getObject().geometry.vertices;
+			rad = coll.getObject().boundRadius+1;
 			var directions = {
 				"up": [4,1],
 				"down": [6,2],

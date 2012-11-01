@@ -9,11 +9,9 @@ var PointerLockControls = function ( camera ) {
 	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
 	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
 
-
 	yawObject.position.y = 0;
 	yawObject.add( pitchObject );
 
-	
 
 	var moveForward = false;
 	var moveBackward = false;
@@ -21,6 +19,7 @@ var PointerLockControls = function ( camera ) {
 	var moveRight = false;
 	var inAir = 0;
 	var airSmooth = 5;
+	var step = 0;
 	var isOnObject = false;
 	var belowObject = false;
 	var frontObject = false;
@@ -76,7 +75,7 @@ var PointerLockControls = function ( camera ) {
 				break;
 
 			case 32: // space
-				if ( inAir === 0 ) velocity.y += 10;
+				if ( inAir === 0 ) velocity.y += yawObject.boundRadius - 1;
 				break;
 
 		}
@@ -218,39 +217,59 @@ var PointerLockControls = function ( camera ) {
 			velocity.y -= 0.25 * delta; 
 		} 		
 		if (isOnObject){
-			yawObject.position.y = floor.y+4;
+			yawObject.position.y = floor.y+yawObject.boundRadius;
 			velocity.y = Math.max( 0, velocity.y );
 		}
 
 		if (belowObject){
 			if(!isOnObject && velocity.y > 0) {
-				yawObject.position.y = ceiling.y-4; 
+				yawObject.position.y = ceiling.y-yawObject.boundRadius; 
 				velocity.x += Math.random()*3-1;
 				velocity.z += Math.random()*3-1;
+				pitchObject.rotation.x += Math.random()*0.1;
 			}
 			if (velocity.y > 0) velocity.y = 0;
 			velocity.y -= 0.25 * delta; 
 		}
 
-		if ( moveForward) velocity.z -= 0.12 * delta;
+		// if ( moveForward && isOnObject) {
+		// 	var rand = Math.random();
+		// 	var mult = 40;
+		// 	var acc = 0.005;
+		// 	var randStep = Math.random()*mult;
+		// 	++step;
+		// 	if (step <= (randStep / 2)-1) {
+		// 		pitchObject.rotation.z -= rand * acc * 0.5 * delta;
+		// 		pitchObject.rotation.x -= rand * acc * delta;
+		// 	}
+		// 	if (step >= (randStep / 2) && step < randStep) {
+		// 		pitchObject.rotation.z += rand * acc * 0.5 * delta;
+		// 		pitchObject.rotation.x += rand * acc * delta;
+		// 	}
+		// 	if (step >= mult){
+		// 		step = 0;
+		// 	}				
+		// } 
+
+		if (moveForward) velocity.z -= 0.12 * delta;
 		if ( moveBackward) velocity.z += 0.12 * delta;
 
 		if ( moveLeft ) velocity.x -= 0.12 * delta;
 		if ( moveRight ) velocity.x += 0.12 * delta;
 
-		if (frontObject && front.distanceToSquared(yawObject.position) < 6) {
+		if (frontObject && front.distanceToSquared(yawObject.position) < yawObject.boundRadius) {
 			(moveForward) ? velocity.z = 0 : velocity.z = 0.1*delta;
 		}
 
-		if (moveBackward && backObject && back.distanceToSquared(yawObject.position) < 6) {
+		if (moveBackward && backObject && back.distanceToSquared(yawObject.position) < yawObject.boundRadius) {
 			(moveBackward) ? velocity.z = 0 : velocity.z = -0.1*delta;
 		}
 
-		if (leftObject && left.distanceToSquared(yawObject.position) < 6 ) {
+		if (leftObject && left.distanceToSquared(yawObject.position) < yawObject.boundRadius ) {
 			(moveLeft) ? velocity.x = 0 : velocity.x = 0.1*delta;
 			
 		}
-		if (moveRight && rightObject && right.distanceToSquared(yawObject.position) < 6 ) {
+		if (moveRight && rightObject && right.distanceToSquared(yawObject.position) < yawObject.boundRadius ) {
 			(moveRight) ? velocity.x = 0 : velocity.x = -0.1*delta;
 		}
 

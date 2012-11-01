@@ -110,15 +110,15 @@ Audio.Tree.prototype.build = function(turtle, callback){
 	}
 	var mesh;
 
-	if (loudness > 60){
+	if (loudness > 10){
 		if (turtle.stack.length>0) turtle.pop();
 		this.avgCount++;
 		this.sumLoudness += loudness;
 		this.avgLoudness = this.sumLoudness / this.avgCount;
 		if (loudness > this.avgLoudness){
 			turtle.push();
-			cent *= -1;
-			loudness *= -1;
+			cent *= -100;
+			loudness *= -0.1;
 		}
 		turtle.pitch(cent);
 		turtle.yaw(cent);
