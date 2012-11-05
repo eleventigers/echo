@@ -13,7 +13,7 @@ var MARGIN = 100, SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.inner
 var SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048, FLOOR = -550, NEAR = 5, FAR = 50000;
 
 // Global objects
-var renderer, camera, scene, controls, projector, plane, collideWith = new THREE.Object3D(), ray, vector, helper;
+var renderer, camera, scene, controls, projector, plane, collideWith = [], ray, vector, helper;
 
 // Track mouse
 var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELECTED, SHIFT = false, MOUSEDOWN = false, MOUSEDOWNx = 0;
@@ -87,7 +87,7 @@ function setupScene(){
 		}
 	});
 
-	scene.add(collideWith);
+	//scene.add(collideWith);
 
 
 	// floor
@@ -97,7 +97,8 @@ function setupScene(){
 	material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 	mesh = new THREE.Mesh( geometry, material );
 	mesh.position.y = -100;
-	collideWith.add(mesh);
+	collideWith.push(mesh);
+	scene.add(mesh);
 
 
 }
@@ -195,17 +196,20 @@ function onWindowResize() {
 function onDocumentMouseDown( event ) {
 	if (loaded){
 		event.preventDefault();
+
 		var projector = new THREE.Projector();
 		var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
 		projector.unprojectVector( vector, camera );
-
 		var direction = vector.subSelf( controls.getObject().position.clone() ).normalize();
 		var origin = controls.getObject().position.clone();
-		helper.position = origin;
-		helper.setDirection(direction);	
+		
 		var randBuff = Math.floor(Math.random()*bufflist.length);
-		console.log(randBuff);
-		sound = new Audio.Tree({scene:audio, stream: bufflist[randBuff], loop: false});
+
+		var tree = new THREE.Object3D();
+		var sound = new Audio.Tree({scene:audio, stream: bufflist[randBuff], loop: false, sampleStart: 0, sampleDuration: 0});
+		tree.add(sound);
+		tree.sound = sound;
+
 		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
 		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
 		var normalizationMatrix = new THREE.Matrix4();
@@ -213,19 +217,29 @@ function onDocumentMouseDown( event ) {
 		normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 		turtleGeometry.applyMatrix(normalizationMatrix);
 		turtleGeometry.computeBoundingSphere();	
-		turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1);
-		sound.play();	
+		var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, collideWith, helper);
+
+		tree.add(turtle);
+		tree.turtle = turtle;
+
+		scene.add(tree);
+
+		console.log(collideWith);
+
+		tree.sound.play({build:true});	
 	}	
 }
 
 
-function detectCollision(objects) {
+function detectCollision(collidees, collider) {
+
+	return collide(collidees, collider);
 
 	function collide(objects, origin){
 
 		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices;
 		
-		(objects.hasOwnProperty("children")) ? obj = objects : obj = false;
+		(objects.length > 0) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
 
 		if (obj && coll){
@@ -238,33 +252,51 @@ function detectCollision(objects) {
 				"back": [7,0],
 				"left": [5,6],
 				"right": [1,2],
-				// "downLeft": [6],
-				// "upLeft": [4],
-				// "downRight": [3],
-				// "upRight": [1],
-				// "backleft": [7]
+			};
+			var collisions = {
+				"up": {},
+				"down": {},
+				"front": {},
+				"back": {},
+				"left": {},
+				"right": {},
 			};
 			for (key in directions){
 				(directions[key].length > 1) ? localVertex =  vertices[directions[key][0]].clone().addSelf(vertices[directions[key][1]].clone()) : localVertex = vertices[directions[key][0]].clone();	
 				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
 				directionVector = globalVertex.subSelf( coll.getObject().position );
 				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize() );
-				intersects = ray.intersectObjects(obj.children);
+				intersects = ray.intersectObjects(obj);
 				if (intersects.length > 0) {
 					distance = intersects[ 0 ].distance;
-					if (distance >= 0 && distance <= rad) {	
-						coll.pointUpdate(intersects[0].point, key);
-						coll.touchObject(true, key);
+					if (distance >= 0 && distance <= rad) {
+
+						// coll.pointUpdate(intersects[0].point, key);
+						// coll.touchObject(true, key);
+
+						collisions[key].point = intersects[0].point;
+						collisions[key].touch = true;
+
+						// if (intersects[0].object.sampleStart) {
+						// 	if (intersects[0].object.parent) {
+						// 		if (intersects[0].object.parent.sound) intersects[0].object.parent.sound.play({object: intersects[0].object});
+						// 	}
+						// }
+							
 					} else {
-						coll.touchObject(false, key);
+						// coll.touchObject(false, key);
+						collisions[key].point = false;
+						collisions[key].touch = false;
 					}
 				} else {
-					coll.touchObject(false, key);
+					// coll.touchObject(false, key);
+					collisions[key].point = false;
+					collisions[key].touch = false;
 				}		
 			}					
-		}	
+		}
+		return collisions;	
 	}
-	collide(objects, controls);
 }
 
 
@@ -275,13 +307,13 @@ function animate() {
 
 function render() {
 	if (loaded) {
-		detectCollision(collideWith);
+		controls.collUpdate(detectCollision(collideWith, controls));
 		controls.update( Date.now() - time);
 		stats.update();
 		audio.update();
 		renderer.render( scene, camera );
 		time = Date.now();
-		if (sound) sound.build(turtle, function(mesh){ if (mesh) collideWith.add(mesh);});
+		// if (sound) sound.build(turtle, function(mesh){ if (mesh) collideWith.add(mesh);});
 		// var rot = controls.getObject().rotation.clone();
 		// console.log(rot.x, rot.y, rot.z); 
 	}		

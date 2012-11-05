@@ -29,18 +29,18 @@ Audio.Tree = function (parameters) {
 
 	this.processor = this.scene.context.createJavaScriptNode(1024, 1, 1);
 	this.processor.connect(this.volume);
-	this.processor.onaudioprocess = function(e) { self.posUpdate(); };
+	this.processor.onaudioprocess = function(e) { 
+		if (self.building) self.build(); 
+	};
 
 	this.sampleRate = this.scene.context.sampleRate;
 	this.fftRes = this.sampleRate / this.analyser.fftSize;
 	
 	this.oldPosition = new THREE.Vector3();
 	this.posDelta = new THREE.Vector3();
-	this.posFront = new THREE.Vector3();
-	this.posUp = new THREE.Vector3();
 
-	this.voices = [];
-	this.maxVoices = 4;
+	this.voices = {};
+	this.maxVoices = 2;
 
 	this.avgLoudness = 0;
 	this.sumLoudness = 0;
@@ -49,27 +49,19 @@ Audio.Tree = function (parameters) {
 	this.avgCentroid = 0;
 	this.sumCentroid = 0;
 
+	this.building = false;
+
 }
 
 Audio.Tree.prototype = new THREE.Object3D();
 Audio.Tree.prototype.constructor = Audio.Tree; 
 
-Audio.Tree.prototype.posUpdate = function() {
-	var posSource;
-	// (typeof this.parent != "undefined")	? posSource = this.parent : 
-	posSource = this;
+Audio.Tree.prototype.posUpdate = function(newPosition) {
 	this.oldPosition.copy( this.position );
-	this.position.copy( posSource.position );
+	this.position.copy( newPosition );
 	this.posDelta.sub( this.position, this.oldPosition );
 	this.panner.setPosition( this.position.x, this.position.y, this.position.z );
 	this.panner.setVelocity( this.posDelta.x, this.posDelta.y, this.posDelta.z );
-	if ( this.directionalSource ) {
-		this.posFront.set( 0, 0, -1 );
-		this.matrixWorld.rotateAxis( this.posFront );
-		this.posFront.normalize();
-		this.posUp.copy( posSource.up);
-		this.panner.setOrientation( this.posFront.x, this.posFront.y, this.posFront.z, this.posUp.x, this.posUp.y, this.posUp.z );
-	}
 };
 
 Audio.Tree.prototype.extractFft = function(analyser, callback) {
@@ -101,175 +93,153 @@ Audio.Tree.prototype.computeLoudness = function(freqData){
 	return val / length;
 };
 
-Audio.Tree.prototype.build = function(turtle, callback){
+Audio.Tree.prototype.build = function(){
 
-  	var freqData = this.extractFft(this.analyser);
-	var centroid = this.computeCentroid(freqData);
-	var loudness = this.computeLoudness(freqData);
-	var cent = 360 / centroid * loudness  ;
-	if (!isFinite(cent)){
-		cent = 0;
-	}
-
-	// var colorIndex = Math.floor(Math.tan(centroid) % 12);
-	// var color;
-
-	// console.log(Math.sin(centroid));
-
-	// switch(colorIndex){
-	// 	case 0:
-	// 		color = 0x81d743;
-	// 		break;
-	// 	case 1:
-	// 		color = 0xc4d743;
-	// 		break;
-	// 	case 2:
-	// 		color = 0xd7b243;
-	// 		break;
-	// 	case 3:
-	// 		color = 0xd76943;
-	// 		break;
-	// 	case 4:
-	// 		color = 0xd74343;
-	// 		break;
-	// 	case 5:
-	// 		color = 0xd74388 ;
-	// 		break;
-	// 	case 6:
-	// 		color = 0xcb43d7 ;
-	// 		break;
-	// 	case 7:
-	// 		color = 0x8143d7 ;
-	// 		break;
-	// 	case 8:
-	// 		color = 0x435bd7 ;
-	// 		break;
-	// 	case 9:
-	// 		color = 0x4393d7;
-	// 		break;
-	// 	case 10:
-	// 		color = 0x43d7d2 ;
-	// 		break;
-	// 	case 11:
-	// 		color = 0x5f8f93;
-	// 		break;
-	// 	case 12:
-	// 		color = 0x52ba8a;
-	// 		break;
-	// }
-
-	var mesh;
-	if (loudness < 10){
-		turtle.penUp;
-		turtle.drop(loudness*cent/100);
-		if (turtle.stack.length>0) turtle.pop();
-	}
-
-	if (loudness > 10){
-		turtle.penDown;
-		if (turtle.stack.length>0) turtle.pop();
-		this.avgCount++;
-		this.sumLoudness += loudness;
-		this.avgLoudness = this.sumLoudness / this.avgCount;
-		this.sumCentroid += centroid;
-		this.avgCentroid = this.sumCentroid / this.avgCount;
-		if (loudness > this.avgLoudness){
-			turtle.push();
-			cent *= -10 / loudness;
-			loudness *= -1;
+	if (this.parent.turtle){
+		var turtle = this.parent.turtle;
+		var freqData = this.extractFft(this.analyser);
+		var centroid = this.computeCentroid(freqData);
+		var loudness = this.computeLoudness(freqData);
+		var cent = 360  / centroid * loudness;
+		if (!isFinite(cent)){
+			cent = 0;
 		}
-		turtle.pitch(cent);
-		turtle.yaw(cent);
-		//turtle.roll(cent);
-		turtle.setWidth(Math.sin(cent)*loudness/10);
-		// turtle.setColor(color);
-		mesh = turtle.drop(cent*loudness/100);	
-		this.position = turtle.position;
-		return callback(mesh);	
-	}
 
-	
+		if (loudness > 10){
+			turtle.penDown;	
+			this.avgCount++;
+			this.sumLoudness += loudness;
+			this.avgLoudness = this.sumLoudness / this.avgCount;
+			this.sumCentroid += centroid;
+			this.avgCentroid = this.sumCentroid / this.avgCount;
 
-}
-
-Audio.Tree.prototype.play = function (smp, smpSt, smpDur) {
-
-	var playingCount = 0;
-
-	var sample = (!sample) ? this.initParams.stream : smp;
-	var sampleStart = (!smpSt) ? 0 : smpSt;
-	var sampleDuration = (!smpDur) ? 0 : smpDur;
-
-	if (this.voices.length <= this.maxVoices){
-
-		for (var i = 0; i < this.voices.length; i++){
-			if (this.voices[i].playing){
-				playingCount ++;
+			if (loudness < this.avgLoudness){
+				if (turtle.stack.length>0) turtle.pop();	
+				cent /= -100 * Math.sin(loudness);
+				loudness *= -1;
 			}
-			if (!this.voices[i].playing){
-				this.voices.splice(i, 1);
-			}
-		}
 
-		if (playingCount == this.maxVoices){
-			this.voices[0].stop();
-			this.voices.splice(0, 1);
-			var voice = new Voice(this, sample);
-			this.voices.push(voice);
-			voice.play(sampleStart, sampleDuration);
-		} else {
-			var voice = new Voice(this, sample);
-			this.voices.push(voice);
-			voice.play(sampleStart, sampleDuration);
+			if (centroid > this.avgCentroid){
+				turtle.push();
+			}
+
+			turtle.pitch(cent);
+			//turtle.yaw(cent);
+			//turtle.roll(cent);
+			turtle.setWidth(Math.cos(cent)*loudness/10);
+			// turtle.setColor(color);
+			var mesh = turtle.drop(cent*loudness/50);
+			
+			mesh.sampleStart = this.getSampleTime();
+			mesh.sampleDuration = this.processor.bufferSize / this.sampleRate;
+			//console.log(this.processor.bufferSize / this.sampleRate);
+			//mesh.suicide(5000);
+			this.parent.add(mesh);
+			this.posUpdate(turtle.position);
 		}
-	}
-	
+	}	
 };
 
-function Voice (parent, buffer) {
+Audio.Tree.prototype.getSampleTime = function() {
+	var voiceCount = 0;
+	var totalTime = 0;
+	for (k in this.voices){
+		if (this.voices.hasOwnProperty(k)) {
+			totalTime += this.voices[k].getTime();
+			++voiceCount;
+		}	
+	}
+	return totalTime / voiceCount;
+};
 
-	this.parent = parent;
+Audio.Tree.prototype.getVoiceCount = function() {
+	var voiceCount = 0;
+	for (k in this.voices){
+		if (this.voices.hasOwnProperty(k)) ++voiceCount;
+		
+	}
+	return voiceCount;
+};
 
-	this.source = this.parent.scene.context.createBufferSource(mixToMono = false);
-	this.source.buffer = buffer;
-	this.source.loop = this.parent.initParams.loop;
-	this.source.connect(this.parent.volume);
-	this.source.start = 0;
-	this.playing = false;
-
+Audio.Tree.prototype.play = function (params) {
 	var self = this;
+	var deleteVoiceOnStop = function(index){
+		delete self.voices[index];
+		if(self.getVoiceCount() === 0) self.building = false;
+		//if(params.object) params.object.suicide(0);
+	}
+
+	if (this.getVoiceCount() <= this.maxVoices && !this.building){
+		var sample = (!params.sample) ? this.initParams.stream : params.sample;
+		if (!params.object){
+			var sampleStart = (!params.sampleStart) ? this.initParams.sampleStart : params.sampleStart;
+			var sampleDuration = (!params.sampleDuration) ? this.initParams.sampleDuration : params.sampleDuration;
+			if (params.position) this.posUpdate(params.position);
+			if (this.parent.turtle && params.position) this.parent.turtle.position.copy(params.position);
+		} else {
+			var sampleStart = (!params.object.sampleStart) ?  this.initParams.sampleStart : params.object.sampleStart;
+			var sampleDuration = (!params.object.sampleDuration) ? this.initParams.sampleDuration : params.object.sampleDuration;
+			if (params.object.position) this.posUpdate(params.object.position);
+			if (this.parent.turtle && params.object.position) this.parent.turtle.position.copy(params.object.position);
+		}
+		
+		this.building = (params.build) ? params.build : false;
+		var index = this.getVoiceCount();
+		var voice = new Voice(this, sample, deleteVoiceOnStop, index);
+		this.voices[index] = voice;
+		this.voices[index].play(sampleStart+Math.random()*0.01, sampleDuration);
+	}	
+};
+
+function Voice (parent, buffer, onStop, index) {
+	var self = this;
+	var parent = parent;
+	var onStop = onStop;
+	var index = index;
+	var source = parent.scene.context.createBufferSource(mixToMono = false);
+	var volume = parent.scene.context.createGainNode();
+	var voices = parent.getVoiceCount();
+	var scale = (voices !== 0) ? 1 / voices / 2 : 1;
+	volume.gain.setValueAtTime(scale, parent.scene.context.currentTime);
+	source.buffer = buffer;
+	//source.loop = parent.initParams.loop;
+	source.connect(volume);
+	volume.connect(parent.volume);
+	source.start = 0;
+	var sampleStart, sampleDuration;
+	var playHead = parent.scene.context.createJavaScriptNode(512, 1, 1);
+	playHead.onaudioprocess = function(e) {self.follow()};
+
+	this.playing = false;
 	
 	this.play = function (smpSt, smpDur) {
-
-
-
-		this.sampleStart = (!smpSt) ? 0 : smpSt;
-		this.sampleDuration = (!smpDur || smpDur == 0) ? this.source.buffer.duration : smpDur;
-
-		this.playHead = this.parent.scene.context.createJavaScriptNode(2048, 1, 1);
-		this.playHead.onaudioprocess = function(e) {self.follow()};
-
-		this.source.noteGrainOn(0, this.sampleStart, this.sampleDuration);
-		this.playHead.connect(this.parent.volume);
-
-		this.source.start = this.parent.scene.context.currentTime;
+		sampleStart = (!smpSt) ? 0 : smpSt;
+		sampleDuration = (!smpDur || smpDur == 0) ? source.buffer.duration-sampleStart : smpDur;
+		source.start = parent.scene.context.currentTime;
+		playHead.connect(parent.volume);
+		source.noteGrainOn(0, sampleStart, sampleDuration);	
 		this.playing = true;
 	};
 
 	this.stop = function () {
-		this.playHead.disconnect(this.parent.volume);
-		this.source.noteOff(0);
+		playHead.disconnect(parent.volume);
+		source.noteOff(0);
 		this.playing = false;
+		if(onStop) onStop(index);
 	};
 
 	this.follow = function() {
 		if (this.playing) {
-			this.playHeadPos = this.parent.scene.context.currentTime - this.source.start;
+			playHeadPos = parent.scene.context.currentTime - source.start;
 		}
-		if (this.playHeadPos >= this.sampleDuration){
+		if (playHeadPos >= sampleDuration){
 			this.stop();
 		}
 	};	
+
+	this.getTime = function(){
+		return Math.sqrt((playHeadPos - sampleStart)*(playHeadPos - sampleStart));
+	}
 
 }
 

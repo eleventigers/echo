@@ -4,11 +4,10 @@
  */
 
 
-Turtle = function(position, direction, up, material, geometry, width){
+Turtle = function(position, direction, up, material, geometry, width, collide, helper){
 	
 	this.position = position;
 	this.direction = direction;
-	//console.log(this.direction);
 	this.up = up;
 	this.material = material;
 	this.geometry = geometry;
@@ -18,6 +17,8 @@ Turtle = function(position, direction, up, material, geometry, width){
 	this.droppings = [];
 	this.drawing = true;
 	this.stack = [];
+	this.collidable = collide;
+	this.helper = helper;
 
 }
 
@@ -30,12 +31,18 @@ Turtle.prototype.go = function(distance){
     return this.position = newPosition;
 };
 Turtle.prototype.drop = function(distance){
+	this.shoot();
 	var newPosition, distance, mesh, bottomRadius, topRadius, height, shearFactor, turtleTransform;
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance));
     if (this.drawing) {
         distance = this.position.distanceTo(newPosition);
 		mesh = new THREE.Mesh(this.geometry, this.material);
+		mesh.suicide = function(time){
+			var time = (time) ? time : 1000;
+			var self = this;
+			var id = window.setInterval(function() {self.parent.remove(self); window.clearInterval(id);},  time);
+		}
 		bottomRadius = this.width;
 		topRadius = this.width;
 		height = distance;
@@ -48,8 +55,27 @@ Turtle.prototype.drop = function(distance){
 		mesh.applyMatrix(turtleTransform);
     }
     this.position = newPosition;
+    this.collidable.push(mesh);
     return mesh;
 };
+Turtle.prototype.shoot = function(){
+
+		var ray = new THREE.Ray(this.position.clone(), this.direction.clone().normalize());
+		var intersects = ray.intersectObjects(this.collidable);
+		this.helper.position = this.position.clone();
+		this.helper.setDirection(this.direction.clone());	
+		if (intersects.length > 0){
+			if (intersects[0].distance > 0.0001 && intersects[0].distance < 10){
+				
+				this.direction.crossSelf(intersects[0].object.position.clone().normalize());
+			}
+			
+			//this.position.multiplyScalar(intersects[0].distance);
+			
+		}
+
+};
+
 Turtle.prototype.yaw = function(angle) {
 	var rotation;
 	rotation = new THREE.Matrix4().makeRotationAxis(this.up, this.deg2rad(angle));

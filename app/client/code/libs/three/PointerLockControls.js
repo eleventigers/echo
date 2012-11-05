@@ -110,21 +110,7 @@ var PointerLockControls = function ( camera ) {
 
 	};
 
-	var sign = function(number){
-		return number > 0 ? 1 : number == 0 ? 0 : -1;
-	};
-
-	document.addEventListener( 'mousemove', onMouseMove, false );
-	document.addEventListener( 'keydown', onKeyDown, false );
-	document.addEventListener( 'keyup', onKeyUp, false );
-
-	this.enabled = false;
-
-	this.getObject = function () {
-		return yawObject;
-	};
-
-	this.touchObject = function ( boolean, direction ) {
+	var touchUpdate = function ( boolean, direction ) {
 		switch(direction){
 			case "up": 
 				belowObject = boolean;
@@ -148,7 +134,7 @@ var PointerLockControls = function ( camera ) {
 		}		
 	};
 
-	this.pointUpdate = function(point, direction){
+	var pointUpdate = function(point, direction){
 		switch(direction){
 			case "up": 
 				ceiling = point;
@@ -168,6 +154,29 @@ var PointerLockControls = function ( camera ) {
 			case "right":
 				right = point;
 				break;
+		}
+	};
+
+	var sign = function(number){
+		return number > 0 ? 1 : number == 0 ? 0 : -1;
+	};
+
+	document.addEventListener( 'mousemove', onMouseMove, false );
+	document.addEventListener( 'keydown', onKeyDown, false );
+	document.addEventListener( 'keyup', onKeyUp, false );
+
+	this.enabled = false;
+
+	this.getObject = function () {
+		return yawObject;
+	};
+
+	this.collUpdate = function(collisions) {
+		for (key in collisions){
+			if (collisions.hasOwnProperty(key)){
+				touchUpdate(collisions[key].touch, key);
+				pointUpdate(collisions[key].point, key);
+			}
 		}
 	};
 
@@ -235,12 +244,9 @@ var PointerLockControls = function ( camera ) {
 			(moveRight) ? velocity.x = 0 : velocity.x = -0.1*delta;
 		}
 
-		//console.log(velocity.z, stepsZ);
-
 		yawObject.translateX( velocity.x );
 		yawObject.translateY( velocity.y ); 
 		yawObject.translateZ( velocity.z );
-	
 
 	};
 
