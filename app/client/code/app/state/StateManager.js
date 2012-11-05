@@ -1,12 +1,12 @@
 StateManager = function (init_state, canvas_object) {
 	// The state manager most have some initial state
-	this.ActiveAppState = init_state;
+	this.activeAppState = init_state;
 
 	// Create an empty object, we will store key presses here 
-	this.KeysPressed = {};
+	this.keysPressed = {};
 
 	// Cursor state container
-	this.Cursor = {
+	this.cursor = {
 		'prevX' : 0,	// Previous x coordinate
 		'prevY' : 0,	// Previous y coordinate
 		'x' : 0,		// Current x coordinate
@@ -34,20 +34,20 @@ StateManager = function (init_state, canvas_object) {
 		// For compatibility purposes we need to check whether we are dealing with 'charCode' or 'keyCode'
 		var chCode = ('keyCode' in event) ? event.keyCode : event.charCode;
 		// Record key press in map for reference
-		self.KeysPressed[chCode] = true;
+		self.keysPressed[chCode] = true;
 
 		// We need to check if function exists
-		if (typeof self.ActiveAppState.OnKeyDown === 'function')
-			self.ActiveAppState.OnKeyDown(chCode);
+		if (typeof self.activeAppState.onKeyDown === 'function')
+			self.activeAppState.onKeyDown(chCode);
 	});
 
 	// Key released
 	canvas_object.addEventListener("keyup", function (event) {
 		var chCode = ('keyCode' in event) ? event.keyCode :  event.charCode;
-		self.KeysPressed[chCode] = false;
+		self.keysPressed[chCode] = false;
 
-		if (typeof self.ActiveAppState.OnKeyUp === 'function')
-			self.ActiveAppState.OnKeyUp(chCode);
+		if (typeof self.activeAppState.onKeyUp === 'function')
+			self.activeAppState.onKeyUp(chCode);
 	});
 
 	// Mouse moved
@@ -55,37 +55,36 @@ StateManager = function (init_state, canvas_object) {
 
 		var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 		var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
 		var x = event.clientX;
 		var y = event.clientY;
 
-		if (typeof self.ActiveAppState.OnMouseMove === 'function')
-			self.ActiveAppState.OnMouseMove(self.Cursor.x, self.Cursor.y, x, y, self.Cursor.moveX, self.Cursor.moveY, movementX, movementY);
+		if (typeof self.activeAppState.onMouseMove === 'function')
+			self.activeAppState.onMouseMove(self.cursor.x, self.cursor.y, x, y, self.cursor.moveX, self.cursor.moveY, movementX, movementY);
 
-		self.Cursor.prevX = self.Cursor.x;
-		self.Cursor.prevY = self.Cursor.y;
-		self.Cursor.x = x;
-		self.Cursor.y = y;
-		self.Cursor.prevMoveX = self.Cursor.moveX;
-		self.Cursor.prevMoveY = self.Cursor.moveY;
-		self.Cursor.moveX = movementX;
-		self.Cursor.moveY = movementY;
+		self.cursor.prevX = self.cursor.x;
+		self.cursor.prevY = self.cursor.y;
+		self.cursor.x = x;
+		self.cursor.y = y;
+		self.cursor.prevMoveX = self.cursor.moveX;
+		self.cursor.prevMoveY = self.cursor.moveY;
+		self.cursor.moveX = movementX;
+		self.cursor.moveY = movementY;
 	});
 
 	// Mouse clicked (down)
 	canvas_object.addEventListener("mousedown", function() {
-		if (typeof self.ActiveAppState.OnMouseDown === 'function')
-			self.ActiveAppState.OnMouseDown(self.Cursor.x, self.Cursor.y);
+		if (typeof self.activeAppState.onMouseDown === 'function')
+			self.activeAppState.onMouseDown(self.cursor.x, self.cursor.y);
 
-		self.Cursor.down = true;
+		self.cursor.down = true;
 	});
 
 	// Mouse released (up)
 	canvas_object.addEventListener("mouseup", function() {
-		if (typeof self.ActiveAppState.OnMouseUp === 'function')
-			self.ActiveAppState.OnMouseDown(self.Cursor.x, self.Cursor.y);
+		if (typeof self.activeAppState.onMouseUp === 'function')
+			self.activeAppState.onMouseUp(self.cursor.x, self.cursor.y);
 
-		self.Cursor.down = false;
+		self.cursor.down = false;
 	});
 
 	/*
@@ -95,23 +94,23 @@ StateManager = function (init_state, canvas_object) {
 	*/
 }
 
-StateManager.prototype.OnLoop = function () {
-	if (typeof ActiveAppState != undefined)
-		this.ActiveAppState.OnLoop();
+StateManager.prototype.onLoop = function () {
+	if (typeof activeAppState != undefined)
+		this.activeAppState.onLoop();
 }
 
-StateManager.prototype.OnRender = function () {
-	if (typeof ActiveAppState != undefined)
-		this.ActiveAppState.OnRender();
+StateManager.prototype.onRender = function () {
+	if (typeof activeAppState != undefined)
+		this.activeAppState.onRender();
 }
 
-StateManager.prototype.SetActiveAppState = function (state) {
+StateManager.prototype.setActiveAppState = function (state) {
 	if (typeof state != undefined) {
-		this.ActiveAppState = state;
-		if (typeof this.ActiveAppState.OnActivation === 'function') 
-			this.ActiveAppState.OnActivation();
+		this.activeAppState = state;
+		if (typeof this.activeAppState.onActivation === 'function') 
+			this.activeAppState.onActivation();
 		// Reference self so that the state can access the state manager
-		this.ActiveAppState.SetStateManager(this);
+		this.activeAppState.setStateManager(this);
 	} else {
 		console.log("ERROR: Trying to set a state that was undefined");
 	}

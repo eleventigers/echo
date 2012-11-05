@@ -1,29 +1,41 @@
 GameState = function () {
 
 	// Function on fired on every iteration of the game loop
-	this.OnLoop = null;
+	this.onLoop = null;
 
 	// Function fired when asked to render state
-	this.OnRender = null;
+	this.onRender = null;
 	
 	// Function fired when state is activated
-	this.OnActivation = null;
+	this.onActivation = null;
 
 	// Function fired when key is pressed
-	this.OnKeyDown = null;
+	this.onKeyDown = null;
 
 	// Function fired when key is released
-	this.OnKeyUp = null;
+	this.onKeyUp = null;
 
 	// Function fired on mouse move (receives previous x, previous y, current x, current y)
-	this.OnMouseMove  = null;
+	this.onMouseMove  = null;
 
 	// Called when this state is set active
-	this.OnActivation = null;
+	this.onActivation = null;
+
+	// Custom controls object
+	this.controls = null;
+
+	// WebGL renderer
+	this.renderer = null;
+
+	// Web Audio context
+	this.audio = null;
+
+	// Standard stats
+	this.stats = null;
 }
 
 GameState.prototype.constructor = GameState;
 
 GameState.prototype.SetStateManager = function (state_manager) {
-	this.StateManager = state_manager;
+	this.stateManager = state_manager;
 };

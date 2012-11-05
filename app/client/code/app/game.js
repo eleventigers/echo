@@ -31,11 +31,40 @@ var instructions = document.getElementById( 'instructions' );
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
 // State managing
+
 var defaultState = new GameState();
-defaultState.OnKeyDown = function(chCode){console.log(chCode)};
-defaultState.OnMouseMove = function(x,y, px, py){console.log(arguments)};
+
+defaultState.onKeyDown = function(keyCode){
+	if(this.controls){
+		this.controls.onKeyDown(keyCode);
+	}
+	
+};
+defaultState.onKeyUp = function(keyCode){
+	if(this.controls){
+		this.controls.onKeyUp(keyCode);
+	}
+	
+};
+defaultState.onMouseMove = function(prevX, prevY, x, y, prevMoveX, prevMoveY, moveX, moveY){
+	if(this.controls){
+		this.controls.onMouseMove(prevX, prevY, x, y, prevMoveX, prevMoveY, moveX, moveY);
+	}
+};
+
+defaultState.onRender = function(){
+	
+	this.controls.collUpdate(detectCollision(collideWith, controls));
+	this.controls.update( Date.now() - time);
+	this.stats.update();
+	this.audio.update();
+	this.renderer.render( scene, camera );
+	time = Date.now();
+}
+
 var stateMan = new StateManager(defaultState, window);
 
+//
 
 exports.init = function() {
 	setupRenderer();
@@ -43,11 +72,9 @@ exports.init = function() {
 	setupControls();
 	setupStats();
 	animate();	
-
 }
 
 function setupRenderer() {
-
 	renderer = new THREE.WebGLRenderer( { clearColor: 0xBCD2EE, clearAlpha: 1, antialias: true } );
 	renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 	renderer.autoClear = false;
@@ -56,8 +83,7 @@ function setupRenderer() {
 	renderer.physicallyBasedShading = false;
 	container.appendChild(renderer.domElement);
 	window.addEventListener( 'resize', onWindowResize, false );
-	window.addEventListener( 'mousedown', onDocumentMouseDown, false );
-
+	defaultState.renderer = renderer;
 }
 
 function setupScene(){
@@ -79,6 +105,7 @@ function setupScene(){
 	scene.add( light );
 
 	audio = new Audio.Scene();
+	defaultState.audio = audio;
 	audio.attach(camera);
 
 	audio.loadBuffers(["/sounds/woodoverblade.wav"], function(status, buffers){
@@ -87,8 +114,6 @@ function setupScene(){
     		loaded = true;
 		}
 	});
-
-
 
 	// floor
 
@@ -169,6 +194,7 @@ function setupControls() {
 		}, false );
 
 	controls = new PointerLockControls( camera );
+	defaultState.controls = controls;
 	scene.add( controls.getObject());
 	
 
@@ -185,6 +211,7 @@ function setupStats() {
 	stats.domElement.style.top = '0px';
 	stats.domElement.style.zIndex = 100;
 	container.appendChild( stats.domElement );
+	defaultState.stats = stats;
 }
 
 function onWindowResize() {
@@ -293,20 +320,7 @@ function detectCollision(collidees, collider) {
 
 function animate() {
 	requestAnimationFrame(animate);
-	render();
+	stateMan.onRender();
 }
 
-function render() {
-	if (loaded) {
-		controls.collUpdate(detectCollision(collideWith, controls));
-		controls.update( Date.now() - time);
-		stats.update();
-		audio.update();
-		renderer.render( scene, camera );
-		time = Date.now();
-		// if (sound) sound.build(turtle, function(mesh){ if (mesh) collideWith.add(mesh);});
-		// var rot = controls.getObject().rotation.clone();
-		// console.log(rot.x, rot.y, rot.z); 
-	}		
-}
 
