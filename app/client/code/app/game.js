@@ -30,10 +30,11 @@ var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
-//Physics
-// Physijs.scripts.worker = "/physijs/physijs_worker.js";
-// Physijs.scripts.ammo = "/physijs/ammo.js";
-// var box;
+// State managing
+var defaultState = new GameState();
+defaultState.OnKeyDown = function(chCode){console.log(chCode)};
+defaultState.OnMouseMove = function(x,y, px, py){console.log(arguments)};
+var stateMan = new StateManager(defaultState, window);
 
 
 exports.init = function() {
@@ -87,7 +88,6 @@ function setupScene(){
 		}
 	});
 
-	//scene.add(collideWith);
 
 
 	// floor
@@ -230,15 +230,13 @@ function onDocumentMouseDown( event ) {
 	}	
 }
 
-
 function detectCollision(collidees, collider) {
 
 	return collide(collidees, collider);
 
 	function collide(objects, origin){
-
 		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices;
-		
+
 		(objects.length > 0) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
 
@@ -270,13 +268,8 @@ function detectCollision(collidees, collider) {
 				if (intersects.length > 0) {
 					distance = intersects[ 0 ].distance;
 					if (distance >= 0 && distance <= rad) {
-
-						// coll.pointUpdate(intersects[0].point, key);
-						// coll.touchObject(true, key);
-
 						collisions[key].point = intersects[0].point;
 						collisions[key].touch = true;
-
 						// if (intersects[0].object.sampleStart) {
 						// 	if (intersects[0].object.parent) {
 						// 		if (intersects[0].object.parent.sound) intersects[0].object.parent.sound.play({object: intersects[0].object});
@@ -284,12 +277,11 @@ function detectCollision(collidees, collider) {
 						// }
 							
 					} else {
-						// coll.touchObject(false, key);
+						
 						collisions[key].point = false;
 						collisions[key].touch = false;
 					}
 				} else {
-					// coll.touchObject(false, key);
 					collisions[key].point = false;
 					collisions[key].touch = false;
 				}		
@@ -298,7 +290,6 @@ function detectCollision(collidees, collider) {
 		return collisions;	
 	}
 }
-
 
 function animate() {
 	requestAnimationFrame(animate);

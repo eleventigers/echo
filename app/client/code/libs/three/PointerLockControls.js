@@ -52,62 +52,48 @@ var PointerLockControls = function ( camera ) {
 	};
 
 	var onKeyDown = function ( event ) {
-
 		switch ( event.keyCode ) {
-
 			case 38: // up
 			case 87: // w
 				moveForward = true;
 				break;
-
 			case 37: // left
 			case 65: // a
 				moveLeft = true; break;
-
 			case 40: // down
 			case 83: // s
 				moveBackward = true;
 				break;
-
 			case 39: // right
 			case 68: // d
 				moveRight = true;
 				break;
-
 			case 32: // space
 				//jump depends on how fast this is running
 				if ( inAir === 0 ) velocity.y += yawObject.boundRadius/2 - 1 + (velocity.z*velocity.z/2);
 				break;
 		}
-
 	};
 
 	var onKeyUp = function ( event ) {
-
 		switch( event.keyCode ) {
-
 			case 38: // up
 			case 87: // w
 				moveForward = false;
 				break;
-
 			case 37: // left
 			case 65: // a
 				moveLeft = false;
 				break;
-
 			case 40: // down
 			case 83: // a
 				moveBackward = false;
 				break;
-
 			case 39: // right
 			case 68: // d
 				moveRight = false;
 				break;
-
 		}
-
 	};
 
 	var touchUpdate = function ( boolean, direction ) {
