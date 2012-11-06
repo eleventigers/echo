@@ -4,7 +4,7 @@
  */
 
 
-Turtle = function(position, direction, up, material, geometry, width, collide, helper){
+Turtle = function(position, direction, up, material, geometry, width, collide){
 	
 	this.position = position;
 	this.direction = direction;
@@ -18,7 +18,6 @@ Turtle = function(position, direction, up, material, geometry, width, collide, h
 	this.drawing = true;
 	this.stack = [];
 	this.collidable = collide;
-	this.helper = helper;
 
 }
 
@@ -62,8 +61,7 @@ Turtle.prototype.shoot = function(){
 
 		var ray = new THREE.Ray(this.position.clone(), this.direction.clone().normalize());
 		var intersects = ray.intersectObjects(this.collidable);
-		this.helper.position = this.position.clone();
-		this.helper.setDirection(this.direction.clone());	
+	
 		if (intersects.length > 0){
 			if (intersects[0].distance > 0.0001 && intersects[0].distance < 10){
 				

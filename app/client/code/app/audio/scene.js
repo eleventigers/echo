@@ -2,11 +2,12 @@
  * @author eleventigers / http://jokubasdargis.com/
  */
 
-Audio.Scene = function (){
+Audio.Scene = function (listener){
 
     // Freesound API access
     this.freesound = new Freesound('d34c2909acd242819a7f4ceba6a7c041', true);
 
+    // Context setup
     this.context = new webkitAudioContext();
     this.convolver = this.context.createConvolver();
     this.convolverGain = this.context.createGainNode();
@@ -25,11 +26,6 @@ Audio.Scene = function (){
 
     this.bufferList = {};
 
-}
-
-Audio.Scene.prototype.constructor = Audio.Scene;
-Audio.Scene.prototype.attach = function(listener){
-
     // attach context listener to a camera e.g.
     this.listener = listener; 
     this.listener.newPosition = new THREE.Vector3();
@@ -37,7 +33,9 @@ Audio.Scene.prototype.attach = function(listener){
     this.listener.posDelta = new THREE.Vector3();
     this.listener.posFront = new THREE.Vector3();
 
-};
+}
+
+Audio.Scene.prototype.constructor = Audio.Scene;
 
 Audio.Scene.prototype.update = function() {
 
@@ -55,22 +53,6 @@ Audio.Scene.prototype.update = function() {
         
 };
 
-    			
-// Audio.Scene.prototype.loadBuffer = function(file, callback) {
-//     var ctx = this.context;
-//     var request = new XMLHttpRequest();
-//     request.open("GET", file, true);
-//     request.responseType = "arraybuffer";
-//     request.onload = function() {
-//         var buffer = ctx.createBuffer(request.response, false);
-//         callback(buffer);
-//     };
-//     request.send();
-//     return request;
-// };
-
-
-
 
 Audio.Scene.prototype.loadEnvironment = function(file) {
         var self = this;
@@ -87,19 +69,19 @@ Audio.Scene.prototype.loadBuffer = function(url, callback) {
   request.open("GET", url, true);
   request.responseType = "arraybuffer";
 
-  var scene = this;
+  var self = this;
 
   request.onload = function() {
     // Asynchronously decode the audio file data in request.response
-    scene.context.decodeAudioData(
+    self.context.decodeAudioData(
         request.response,
         function(buffer) {
             if (!buffer) {
               alert('error decoding file data: ' + url);
               return;
             }
-            scene.bufferList[filename] = buffer;
-            callback('success', buffer);
+            self.bufferList[filename] = buffer;
+            callback(true, buffer);
         }
     );
   }
@@ -128,11 +110,11 @@ Audio.Scene.prototype.loadFreesoundBuffer = function(id, callback) {
     function(){console.log("Error fetching freesound resource: "+id);
     });
 
-  var scene = this;
+  var self = this;
 
   request.onload = function() {
     // Asynchronously decode the audio file data in request.response
-    scene.context.decodeAudioData(
+    self.context.decodeAudioData(
         request.response,
         function(buffer) {
             if (!buffer) {
@@ -142,8 +124,8 @@ Audio.Scene.prototype.loadFreesoundBuffer = function(id, callback) {
             buffer.meta = returnedSndInfo;
             returnedSndInfo.getAnalysisFrames(function(analysis){
               buffer.meta.properties.analysis_frames = analysis;
-              scene.bufferList[filename] = buffer;
-              callback('success', buffer);
+              self.bufferList[filename] = buffer;
+              callback(true, buffer);
             });           
         }
     );
@@ -152,36 +134,35 @@ Audio.Scene.prototype.loadFreesoundBuffer = function(id, callback) {
   request.onerror = function() {
     alert('Audio.Loader: XHR error');
   }
-
   
 }
 
+// TODO : merge methods below into one
+
 Audio.Scene.prototype.loadBuffers = function(urlList, callback) {
+    var self = this;
     var count = 0;
-    var buffers = [];
     for (var i = 0; i < urlList.length; ++i)
     this.loadBuffer(urlList[i], function(status, buffer){
-        if (status == 'success'){
+        if (status){
           ++count;
-          buffers.push(buffer);
         } 
         if (count == urlList.length) {
-            callback('success', buffers);
+            callback(true, self.bufferList);
         }
     });
 }
 
 Audio.Scene.prototype.loadFreesoundBuffers = function(idList, callback) {
+    var self = this;
     var count = 0;
-    var buffers = [];
     for (var i = 0; i < idList.length; ++i)
     this.loadFreesoundBuffer(idList[i], function(status, buffer){
-        if (status == 'success') {
+        if (status) {
           ++count;
-          buffers.push(buffer);
         }
         if (count == idList.length) {
-            callback('success', buffers);
+            callback(true, self.bufferList);
         }
     });
 }

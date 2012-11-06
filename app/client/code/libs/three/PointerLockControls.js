@@ -91,12 +91,9 @@ var PointerLockControls = function ( camera ) {
 	this.enabled = false;
 
 	this.onMouseMove = function ( prevX, prevY, x, y, prevMoveX, prevMoveY, moveX, moveY ) {
-
-		if ( scope.enabled === false ) return;
-		
+		if ( scope.enabled === false ) return;	
 		yawObject.rotation.y -= moveX * 0.002;
 		pitchObject.rotation.x -= moveY * 0.002;
-
 		pitchObject.rotation.x = Math.max( - PI_2, Math.min( PI_2, pitchObject.rotation.x ) );
 
 	};

@@ -87,6 +87,38 @@ StateManager = function (init_state, canvas_object) {
 		self.cursor.down = false;
 	});
 
+	// Window resized
+	window.addEventListener('resize', function() {
+		if (typeof self.activeAppState.onResize === 'function')
+			self.activeAppState.onResize();
+	});
+
+	// Hook pointer lock state change events
+	canvas_object.addEventListener( 'pointerlockchange', function(event) {
+		if (typeof self.activeAppState.onPointerLockChange === 'function')
+			self.activeAppState.onPointerLockChange(event);
+	}, false );
+	canvas_object.addEventListener( 'mozpointerlockchange',  function(event) {
+		if (typeof self.activeAppState.onPointerLockChange === 'function')
+			self.activeAppState.onPointerLockChange(event);
+	}, false );
+	canvas_object.addEventListener( 'webkitpointerlockchange',  function(event) {
+		if (typeof self.activeAppState.onPointerLockChange === 'function')
+			self.activeAppState.onPointerLockChange(event);
+	}, false );
+	canvas_object.addEventListener( 'pointerlockerror', function(event) {
+		if (typeof self.activeAppState.onPointerLockError === 'function')
+			self.activeAppState.onPointerLockError(event);
+	}, false );
+	canvas_object.addEventListener( 'mozpointerlockerror', function(event) {
+		if (typeof self.activeAppState.onPointerLockError === 'function')
+			self.activeAppState.onPointerLockError(event);
+	}, false );
+	canvas_object.addEventListener( 'webkitpointerlockerror', function(event) {
+		if (typeof self.activeAppState.onPointerLockError === 'function')
+			self.activeAppState.onPointerLockError(event);
+	}, false );
+
 	/*
 
 		EVENT HANDLING FINISH

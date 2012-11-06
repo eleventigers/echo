@@ -1,6 +1,6 @@
 GameState = function () {
 
-	// Function on fired on every iteration of the game loop
+	// Function fired on every iteration of the game loop
 	this.onLoop = null;
 
 	// Function fired when asked to render state
@@ -18,24 +18,43 @@ GameState = function () {
 	// Function fired on mouse move (receives previous x, previous y, current x, current y)
 	this.onMouseMove  = null;
 
-	// Called when this state is set active
-	this.onActivation = null;
+	this.onMouseDown  = null;
+
+	this.onMouseUp  = null;
+
+	// Function fired on window resize
+	this.onResize = null;
+
+	// Fired on pointer lock change
+	this.onPointerLockChange = null;
+
+	// Fired on pointer lock error
+	this.onPointerLockError = null;
 
 	// Custom controls object
 	this.controls = null;
 
-	// WebGL renderer
+	// THREE.js renderer
 	this.renderer = null;
+
+	// THREE.js scene
+	this.scene = null;
 
 	// Web Audio context
 	this.audio = null;
 
 	// Standard stats
 	this.stats = null;
+
+	// Called when this state is set active
+	this.onActivation = null;
+
+	// Colliding objects will be kept here
+	this.collidees = new THREE.Object3D();
 }
 
 GameState.prototype.constructor = GameState;
 
-GameState.prototype.SetStateManager = function (state_manager) {
+GameState.prototype.setStateManager = function (state_manager) {
 	this.stateManager = state_manager;
 };

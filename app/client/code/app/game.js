@@ -1,34 +1,62 @@
-// Loaded?
-var loaded = false;
+exports.init = function() {
+	stateMan.setActiveAppState(defaultState);
+	animate();	
+}
 
 // DOM elements for the game
 var container = document.createElement('div');
 				document.body.appendChild(container);
 var stats;
 
-// Dimmensions for the Three renderer nad camera
-var MARGIN = 100, SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
-
-// Three renderer options
-var SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048, FLOOR = -550, NEAR = 5, FAR = 50000;
-
-// Global objects
-var renderer, camera, scene, controls, projector, plane, collideWith = [], ray, vector, helper;
-
-// Track mouse
-var mouse = new THREE.Vector2(), offset = new THREE.Vector3(), INTERSECTED, SELECTED, SHIFT = false, MOUSEDOWN = false, MOUSEDOWNx = 0;
+// Dimmensions for the Three renderer
+var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
 
 // Global clock
-var time = Date.now();
-
-// Audio
-var audio, bufflist, sound, turtle;
+var TIME = Date.now();
 
 // Pointer lock
-
+var element = document.body;
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
 var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+if(havePointerLock){
+	instructions.addEventListener( 'click', function ( event ) {
+		instructions.style.display = 'none';
+
+		// Ask the browser to lock the pointer
+		element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
+
+		if ( /Firefox/i.test( navigator.userAgent ) ) {
+
+			var fullscreenchange = function ( event ) {
+
+				if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
+
+					document.removeEventListener( 'fullscreenchange', fullscreenchange );
+					document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
+
+					element.requestPointerLock();
+				}
+
+			}
+
+			document.addEventListener( 'fullscreenchange', fullscreenchange, false );
+			document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
+
+			element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
+			element.requestFullscreen();
+
+		} else {
+
+			element.requestPointerLock();
+
+		}
+
+	}, false );
+} else {
+	instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+
+}	
 
 // State managing
 
@@ -51,211 +79,155 @@ defaultState.onMouseMove = function(prevX, prevY, x, y, prevMoveX, prevMoveY, mo
 		this.controls.onMouseMove(prevX, prevY, x, y, prevMoveX, prevMoveY, moveX, moveY);
 	}
 };
+defaultState.onMouseDown = function(x, y){
 
-defaultState.onRender = function(){
+	event.preventDefault();
+
+	var projector = new THREE.Projector();
+	var vector = new THREE.Vector3( x, y, 0.5 );
+	projector.unprojectVector( vector, this.camera );
+	var direction = vector.subSelf( this.controls.getObject().position.clone() ).normalize();
+	var origin = this.controls.getObject().position.clone();
 	
-	this.controls.collUpdate(detectCollision(collideWith, controls));
-	this.controls.update( Date.now() - time);
+	var tree = new THREE.Object3D();
+	var sound = new Audio.Tree({scene:this.audio, stream: this.audio.bufferList["woodoverblade.wav"], loop: false, sampleStart: 0, sampleDuration: 0});
+	tree.add(sound);
+	tree.sound = sound;
+
+	var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+	var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+	var normalizationMatrix = new THREE.Matrix4();
+	normalizationMatrix.rotateX(Math.PI / 2);
+	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+	turtleGeometry.applyMatrix(normalizationMatrix);
+	turtleGeometry.computeBoundingSphere();	
+	var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
+
+	tree.add(turtle);
+	tree.turtle = turtle;
+
+	this.scene.add(tree);
+
+	tree.sound.play({build:true});
+
+};
+defaultState.onResize = function () {
+	if(this.camera){
+		this.camera.aspect = window.innerWidth / window.innerHeight;
+		this.camera.updateProjectionMatrix();
+	} 
+	if(this.renderer){
+		this.renderer.setSize( window.innerWidth, window.innerHeight );
+	}		
+};
+defaultState.onRender = function(){
+	this.controls.collUpdate(detectCollision(this.scene.children, this.controls));
+	this.controls.update(Date.now() - TIME);
 	this.stats.update();
 	this.audio.update();
-	this.renderer.render( scene, camera );
-	time = Date.now();
+	this.renderer.render( this.scene, this.camera );
+	TIME = Date.now();
+};
+defaultState.onPointerLockChange = function(event) {
+			
+	if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
+		this.controls.enabled = true;
+		blocker.style.display = 'none';
+	} else {
+		this.controls.enabled = false;
+		blocker.style.display = '-webkit-box';
+		blocker.style.display = '-moz-box';
+		blocker.style.display = 'box';
+		instructions.style.display = '';
+	}
+	
+};
+defaultState.onPointerLockError = function(event) {
+	instructions.style.display = '';
+};
+defaultState.onActivation = function() {
+	this.renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
+	this.scene = setupScene();
+	this.camera = setupCamera();
+	this.controls = setupControls(this.camera);
+	this.scene.add(this.controls.getObject());
+	this.audio = setupAudio(this.camera);
+	this.stats = setupStats(container);
+
+	if(this.audio){
+		this.audio.loadBuffers(["/sounds/woodoverblade.wav"], function(status, buffers){
+			if (status){
+    			console.log(buffers);	
+			}
+		});
+	}
 }
 
-var stateMan = new StateManager(defaultState, window);
+var stateMan = new StateManager(defaultState, document);
 
-//
+////
+////
 
-exports.init = function() {
-	setupRenderer();
-	setupScene();
-	setupControls();
-	setupStats();
-	animate();	
-}
-
-function setupRenderer() {
-	renderer = new THREE.WebGLRenderer( { clearColor: 0xBCD2EE, clearAlpha: 1, antialias: true } );
-	renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
+function setupRenderer(width, height, container) {
+	var renderer = new THREE.WebGLRenderer( { clearColor: 0xBCD2EE, clearAlpha: 1, antialias: true } );
+	renderer.setSize( width, height );
 	renderer.autoClear = false;
 	renderer.shadowMapEnabled = true;
 	renderer.shadowMapSoft = true;
 	renderer.physicallyBasedShading = false;
 	container.appendChild(renderer.domElement);
-	window.addEventListener( 'resize', onWindowResize, false );
-	defaultState.renderer = renderer;
+	return renderer;
 }
 
 function setupScene(){
 
-	scene = new THREE.Scene();
+	var scene = new THREE.Scene();
 	scene.fog = new THREE.FogExp2( 0xBCD2EE, 0.0001 );
 
-	camera = new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 2000 );
-
-	helper = new THREE.ArrowHelper(new THREE.Vector3());
+	var helper = new THREE.ArrowHelper(new THREE.Vector3());
 	scene.add(helper);
 
 	var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
 
-	var light = new THREE.DirectionalLight( 0xffffff );
-	light.position.set( -1, - 0.5, -1 );
-	scene.add( light );
-
-	audio = new Audio.Scene();
-	defaultState.audio = audio;
-	audio.attach(camera);
-
-	audio.loadBuffers(["/sounds/woodoverblade.wav"], function(status, buffers){
-		if (status == 'success'){
-    		bufflist = buffers;
-    		loaded = true;
-		}
-	});
+	var anotherLight = new THREE.DirectionalLight( 0xffffff );
+	anotherLight.position.set( -1, - 0.5, -1 );
+	scene.add( anotherLight );
 
 	// floor
 
-	geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+	var geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
 	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
-	material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
-	mesh = new THREE.Mesh( geometry, material );
+	var material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+	var mesh = new THREE.Mesh( geometry, material );
 	mesh.position.y = -100;
-	collideWith.push(mesh);
 	scene.add(mesh);
 
-
+	return scene;
 }
 
-function setupControls() {
-
-	if(havePointerLock){
-		var element = document.body;
-		var pointerlockchange = function ( event ) {
-			
-			if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
-				controls.enabled = true;
-				blocker.style.display = 'none';
-			} else {
-				controls.enabled = false;
-				blocker.style.display = '-webkit-box';
-				blocker.style.display = '-moz-box';
-				blocker.style.display = 'box';
-				instructions.style.display = '';
-			}
-
-		}
-
-		var pointerlockerror = function ( event ) {
-			instructions.style.display = '';
-		}
-
-		// Hook pointer lock state change events
-		document.addEventListener( 'pointerlockchange', pointerlockchange, false );
-		document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
-		document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
-		document.addEventListener( 'pointerlockerror', pointerlockerror, false );
-		document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
-		document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
-
-		instructions.addEventListener( 'click', function ( event ) {
-			instructions.style.display = 'none';
-
-			// Ask the browser to lock the pointer
-			element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-
-			if ( /Firefox/i.test( navigator.userAgent ) ) {
-
-				var fullscreenchange = function ( event ) {
-
-					if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
-
-						document.removeEventListener( 'fullscreenchange', fullscreenchange );
-						document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
-
-						element.requestPointerLock();
-					}
-
-				}
-
-				document.addEventListener( 'fullscreenchange', fullscreenchange, false );
-				document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
-
-				element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
-				element.requestFullscreen();
-
-			} else {
-
-				element.requestPointerLock();
-
-			}
-
-		}, false );
-
-	controls = new PointerLockControls( camera );
-	defaultState.controls = controls;
-	scene.add( controls.getObject());
-	
-
-	} else {
-		instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
-
-	}
-
+function setupAudio(listener){
+	return new Audio.Scene(listener);
 }
 
-function setupStats() {
-	stats = new Stats();
+function setupCamera(){
+	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 2000 );
+}
+
+function setupControls(camera) {
+	return new PointerLockControls(camera);
+}
+
+function setupStats(container) {
+	var stats = new Stats();
 	stats.domElement.style.position = 'absolute';
 	stats.domElement.style.top = '0px';
 	stats.domElement.style.zIndex = 100;
 	container.appendChild( stats.domElement );
-	defaultState.stats = stats;
+	return stats;
 }
 
-function onWindowResize() {
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-	renderer.setSize( window.innerWidth, window.innerHeight );
-}
-
-function onDocumentMouseDown( event ) {
-	if (loaded){
-		event.preventDefault();
-
-		var projector = new THREE.Projector();
-		var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-		projector.unprojectVector( vector, camera );
-		var direction = vector.subSelf( controls.getObject().position.clone() ).normalize();
-		var origin = controls.getObject().position.clone();
-		
-		var randBuff = Math.floor(Math.random()*bufflist.length);
-
-		var tree = new THREE.Object3D();
-		var sound = new Audio.Tree({scene:audio, stream: bufflist[randBuff], loop: false, sampleStart: 0, sampleDuration: 0});
-		tree.add(sound);
-		tree.sound = sound;
-
-		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-		var normalizationMatrix = new THREE.Matrix4();
-		normalizationMatrix.rotateX(Math.PI / 2);
-		normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-		turtleGeometry.applyMatrix(normalizationMatrix);
-		turtleGeometry.computeBoundingSphere();	
-		var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, collideWith, helper);
-
-		tree.add(turtle);
-		tree.turtle = turtle;
-
-		scene.add(tree);
-
-		console.log(collideWith);
-
-		tree.sound.play({build:true});	
-	}	
-}
 
 function detectCollision(collidees, collider) {
 
@@ -296,15 +268,8 @@ function detectCollision(collidees, collider) {
 					distance = intersects[ 0 ].distance;
 					if (distance >= 0 && distance <= rad) {
 						collisions[key].point = intersects[0].point;
-						collisions[key].touch = true;
-						// if (intersects[0].object.sampleStart) {
-						// 	if (intersects[0].object.parent) {
-						// 		if (intersects[0].object.parent.sound) intersects[0].object.parent.sound.play({object: intersects[0].object});
-						// 	}
-						// }
-							
-					} else {
-						
+						collisions[key].touch = true;						
+					} else {						
 						collisions[key].point = false;
 						collisions[key].touch = false;
 					}
@@ -314,6 +279,7 @@ function detectCollision(collidees, collider) {
 				}		
 			}					
 		}
+		console.log(collisions);
 		return collisions;	
 	}
 }
