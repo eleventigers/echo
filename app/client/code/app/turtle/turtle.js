@@ -6,6 +6,7 @@
 
 Turtle = function(position, direction, up, material, geometry, width, collide){
 	
+	THREE.Object3D.call(this);
 	this.position = position;
 	this.direction = direction;
 	this.up = up;
@@ -20,7 +21,7 @@ Turtle = function(position, direction, up, material, geometry, width, collide){
 	this.collidable = collide;
 
 }
-
+Turtle.prototype = new THREE.Object3D();
 Turtle.prototype.constructor = Turtle;
 
 Turtle.prototype.go = function(distance){
@@ -54,7 +55,7 @@ Turtle.prototype.drop = function(distance){
 		mesh.applyMatrix(turtleTransform);
     }
     this.position = newPosition;
-    this.collidable.push(mesh);
+    //this.collidable.push(mesh);
     return mesh;
 };
 Turtle.prototype.shoot = function(){

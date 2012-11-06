@@ -1,5 +1,8 @@
 GameState = function () {
 
+	// Game running or paused
+	this.running = false;
+	
 	// Function fired on every iteration of the game loop
 	this.onLoop = null;
 
@@ -49,8 +52,6 @@ GameState = function () {
 	// Called when this state is set active
 	this.onActivation = null;
 
-	// Colliding objects will be kept here
-	this.collidees = new THREE.Object3D();
 }
 
 GameState.prototype.constructor = GameState;

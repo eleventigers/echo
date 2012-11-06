@@ -37,49 +37,49 @@ var PointerLockControls = function ( camera ) {
 
 	var PI_2 = Math.PI / 2;
 
-	var touchUpdate = function ( boolean, direction ) {
+	var touchUpdate = function (direction, object) {
 		switch(direction){
 			case "up": 
-				belowObject = boolean;
+				belowObject = object;
 				break;
 			case "down":
-				isOnObject = boolean;
-				(!boolean) ? ++inAir : inAir = 0;
+				isOnObject = object;
+				(!object) ? ++inAir : inAir = 0;
 				break;
 			case "front":
-				frontObject = boolean;
+				frontObject = object;
 				break;
 			case "back":
-				backObject = boolean;
+				backObject = object;
 				break;
 			case "left":
-				leftObject = boolean;
+				leftObject = object;
 				break;
 			case "right":
-				rightObject = boolean;
+				rightObject = object;
 				break;
 		}		
 	};
 
-	var pointUpdate = function(point, direction){
+	var pointUpdate = function(direction, object){
 		switch(direction){
 			case "up": 
-				ceiling = point;
+				if(object) ceiling = object.point;
 				break;
 			case "down":
-				floor = point;
+				if(object) floor = object.point;
 				break;
 			case "front":
-				front = point;
+				if(object) front = object.point;
 				break;
 			case "back":
-				back = point;
+				if(object) back = object.point;
 				break;
 			case "left":
-				left = point;
+				if(object) left = object.point;
 				break;
 			case "right":
-				right = point;
+				if(object) right = object.point;
 				break;
 		}
 	};
@@ -88,10 +88,9 @@ var PointerLockControls = function ( camera ) {
 		return number > 0 ? 1 : number == 0 ? 0 : -1;
 	};
 
-	this.enabled = false;
 
 	this.onMouseMove = function ( prevX, prevY, x, y, prevMoveX, prevMoveY, moveX, moveY ) {
-		if ( scope.enabled === false ) return;	
+	
 		yawObject.rotation.y -= moveX * 0.002;
 		pitchObject.rotation.x -= moveY * 0.002;
 		pitchObject.rotation.x = Math.max( - PI_2, Math.min( PI_2, pitchObject.rotation.x ) );
@@ -151,15 +150,15 @@ var PointerLockControls = function ( camera ) {
 	this.collUpdate = function(collisions) {
 		for (key in collisions){
 			if (collisions.hasOwnProperty(key)){
-				touchUpdate(collisions[key].touch, key);
-				pointUpdate(collisions[key].point, key);
+				touchUpdate(key, collisions[key]);
+				pointUpdate(key, collisions[key]);
 			}
 		}
+
+		return (collisions) ?  true : false;
 	};
 
 	this.update = function ( delta ) {
-
-		if ( scope.enabled === false ) return;
 
 		delta *= 0.1;
 

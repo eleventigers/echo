@@ -80,36 +80,38 @@ defaultState.onMouseMove = function(prevX, prevY, x, y, prevMoveX, prevMoveY, mo
 	}
 };
 defaultState.onMouseDown = function(x, y){
+	if(this.running){
+		event.preventDefault();
 
-	event.preventDefault();
+		var projector = new THREE.Projector();
+		var vector = new THREE.Vector3( x, y, 0.5 );
+		projector.unprojectVector( vector, this.camera );
+		var direction = vector.subSelf( this.controls.getObject().position.clone() ).normalize();
+		var origin = this.controls.getObject().position.clone();
+		
+		var tree = new THREE.Object3D();
+		var sound = new Audio.Tree({scene:this.audio, stream: this.audio.bufferList["woodoverblade.wav"], loop: false, sampleStart: 0, sampleDuration: 0});
+		tree.add(sound);
+		tree.sound = sound;
 
-	var projector = new THREE.Projector();
-	var vector = new THREE.Vector3( x, y, 0.5 );
-	projector.unprojectVector( vector, this.camera );
-	var direction = vector.subSelf( this.controls.getObject().position.clone() ).normalize();
-	var origin = this.controls.getObject().position.clone();
-	
-	var tree = new THREE.Object3D();
-	var sound = new Audio.Tree({scene:this.audio, stream: this.audio.bufferList["woodoverblade.wav"], loop: false, sampleStart: 0, sampleDuration: 0});
-	tree.add(sound);
-	tree.sound = sound;
+		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+		var normalizationMatrix = new THREE.Matrix4();
+		normalizationMatrix.rotateX(Math.PI / 2);
+		normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+		turtleGeometry.applyMatrix(normalizationMatrix);
+		turtleGeometry.computeBoundingSphere();	
+		var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
 
-	var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-	var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-	var normalizationMatrix = new THREE.Matrix4();
-	normalizationMatrix.rotateX(Math.PI / 2);
-	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-	turtleGeometry.applyMatrix(normalizationMatrix);
-	turtleGeometry.computeBoundingSphere();	
-	var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
+		tree.add(turtle);
+		tree.turtle = turtle;
 
-	tree.add(turtle);
-	tree.turtle = turtle;
+		this.scene.add(tree);
 
-	this.scene.add(tree);
+		console.log(tree);
 
-	tree.sound.play({build:true});
-
+		tree.sound.play({build:true});
+	}
 };
 defaultState.onResize = function () {
 	if(this.camera){
@@ -121,20 +123,22 @@ defaultState.onResize = function () {
 	}		
 };
 defaultState.onRender = function(){
-	this.controls.collUpdate(detectCollision(this.scene.children, this.controls));
-	this.controls.update(Date.now() - TIME);
-	this.stats.update();
-	this.audio.update();
-	this.renderer.render( this.scene, this.camera );
-	TIME = Date.now();
+	if (this.running){
+		this.controls.collUpdate(detectCollision(this.scene.children, this.controls));
+		this.controls.update(Date.now() - TIME);
+		this.stats.update();
+		this.audio.update();
+		this.renderer.render( this.scene, this.camera );
+		TIME = Date.now();
+	}	
 };
 defaultState.onPointerLockChange = function(event) {
 			
 	if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
-		this.controls.enabled = true;
+		this.running = true;
 		blocker.style.display = 'none';
 	} else {
-		this.controls.enabled = false;
+		this.running = false;
 		blocker.style.display = '-webkit-box';
 		blocker.style.display = '-moz-box';
 		blocker.style.display = 'box';
@@ -184,9 +188,6 @@ function setupScene(){
 	var scene = new THREE.Scene();
 	scene.fog = new THREE.FogExp2( 0xBCD2EE, 0.0001 );
 
-	var helper = new THREE.ArrowHelper(new THREE.Vector3());
-	scene.add(helper);
-
 	var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
@@ -229,12 +230,24 @@ function setupStats(container) {
 }
 
 
+// function rColl(collidees, collider, callback){
+// 	if (collidees.hasOwnProperty("children")){
+// 		if(collidees.children.length >= 0){
+// 			var results = detectCollision(collidees.children, collider);
+// 			if(results) callback(results);
+// 			for (var i = 0; i < collidees.children.length; ++i){
+// 				rColl(collidees.children[i], collider, callback);
+// 			}
+// 		} 	
+// 	}	
+// }
+
 function detectCollision(collidees, collider) {
 
 	return collide(collidees, collider);
 
 	function collide(objects, origin){
-		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices;
+		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices, falseCount;
 
 		(objects.length > 0) ? obj = objects : obj = false;
 		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
@@ -263,24 +276,21 @@ function detectCollision(collidees, collider) {
 				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
 				directionVector = globalVertex.subSelf( coll.getObject().position );
 				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize() );
-				intersects = ray.intersectObjects(obj);
+				intersects = ray.intersectObjects(obj, true);
 				if (intersects.length > 0) {
 					distance = intersects[ 0 ].distance;
 					if (distance >= 0 && distance <= rad) {
-						collisions[key].point = intersects[0].point;
-						collisions[key].touch = true;						
+						collisions[key] = intersects[ 0 ];				
 					} else {						
-						collisions[key].point = false;
-						collisions[key].touch = false;
+						collisions[key] = false;
 					}
 				} else {
-					collisions[key].point = false;
-					collisions[key].touch = false;
+					collisions[key] = false;
+					++falseCount;
 				}		
 			}					
 		}
-		console.log(collisions);
-		return collisions;	
+		return (falseCount !== 6) ? collisions : false;	
 	}
 }
 
