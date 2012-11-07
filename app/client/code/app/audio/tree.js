@@ -134,6 +134,7 @@ Audio.Tree.prototype.build = function(){
 			mesh.sampleDuration = this.processor.bufferSize / this.sampleRate;
 			//console.log(this.processor.bufferSize / this.sampleRate);
 			//mesh.suicide(5000);
+	
 			this.parent.add(mesh);
 			this.posUpdate(turtle.position);
 		}

@@ -79,38 +79,17 @@ defaultState.onMouseMove = function(prevX, prevY, x, y, prevMoveX, prevMoveY, mo
 		this.controls.onMouseMove(prevX, prevY, x, y, prevMoveX, prevMoveY, moveX, moveY);
 	}
 };
-defaultState.onMouseDown = function(x, y){
+defaultState.onMouseDown = function(event, x, y){
 	if(this.running){
 		event.preventDefault();
-
 		var projector = new THREE.Projector();
 		var vector = new THREE.Vector3( x, y, 0.5 );
 		projector.unprojectVector( vector, this.camera );
 		var direction = vector.subSelf( this.controls.getObject().position.clone() ).normalize();
 		var origin = this.controls.getObject().position.clone();
+
+		console.log(this.controls.getOn());
 		
-		var tree = new THREE.Object3D();
-		var sound = new Audio.Tree({scene:this.audio, stream: this.audio.bufferList["woodoverblade.wav"], loop: false, sampleStart: 0, sampleDuration: 0});
-		tree.add(sound);
-		tree.sound = sound;
-
-		var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-		var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-		var normalizationMatrix = new THREE.Matrix4();
-		normalizationMatrix.rotateX(Math.PI / 2);
-		normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-		turtleGeometry.applyMatrix(normalizationMatrix);
-		turtleGeometry.computeBoundingSphere();	
-		var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
-
-		tree.add(turtle);
-		tree.turtle = turtle;
-
-		this.scene.add(tree);
-
-		console.log(tree);
-
-		tree.sound.play({build:true});
 	}
 };
 defaultState.onResize = function () {
@@ -150,18 +129,41 @@ defaultState.onPointerLockError = function(event) {
 	instructions.style.display = '';
 };
 defaultState.onActivation = function() {
+
+	var self = this;
+
 	this.renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
-	this.scene = setupScene();
 	this.camera = setupCamera();
+	this.scene = setupScene();
 	this.controls = setupControls(this.camera);
 	this.scene.add(this.controls.getObject());
 	this.audio = setupAudio(this.camera);
 	this.stats = setupStats(container);
 
 	if(this.audio){
-		this.audio.loadBuffers(["/sounds/woodoverblade.wav"], function(status, buffers){
-			if (status){
-    			console.log(buffers);	
+		var sample = "woodoverblade.wav";
+		this.audio.loadBuffers(["/sounds/"+sample], function(status, buffers){
+			if (status){		
+				// First sound
+				var tree = new THREE.Object3D();
+				var sound = new Audio.Tree({scene:self.audio, stream: buffers[sample], loop: false, sampleStart: 0, sampleDuration: 0});
+				tree.add(sound);
+				tree.sound = sound;
+
+				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+				var normalizationMatrix = new THREE.Matrix4();
+				normalizationMatrix.rotateX(Math.PI / 2);
+				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+				turtleGeometry.applyMatrix(normalizationMatrix);
+				turtleGeometry.computeBoundingSphere();	
+				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(1, 0.51, 0.1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+
+				tree.add(turtle);
+				tree.turtle = turtle;
+
+				self.scene.add(tree);
+				tree.sound.play({build:true});	
 			}
 		});
 	}
@@ -173,7 +175,7 @@ var stateMan = new StateManager(defaultState, document);
 ////
 
 function setupRenderer(width, height, container) {
-	var renderer = new THREE.WebGLRenderer( { clearColor: 0xBCD2EE, clearAlpha: 1, antialias: true } );
+	var renderer = new THREE.WebGLRenderer( { clearColor: 0x000000, clearAlpha:1, alpha:true, antialias: true } );
 	renderer.setSize( width, height );
 	renderer.autoClear = false;
 	renderer.shadowMapEnabled = true;
@@ -186,23 +188,26 @@ function setupRenderer(width, height, container) {
 function setupScene(){
 
 	var scene = new THREE.Scene();
-	scene.fog = new THREE.FogExp2( 0xBCD2EE, 0.0001 );
+	scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.005 );
 
-	var light = new THREE.DirectionalLight( 0xffffff, 1.5 );
-	light.position.set( 1, 1, 1 );
+	// Lights
+
+	var ambient = new THREE.AmbientLight( 0x333333 );
+	scene.add( ambient );
+
+	var light = new THREE.SpotLight( 0xF0F0F0 );
+	light.position.set( 0, 5000, 1000 );
+	light.dynamic = true;
+
 	scene.add( light );
 
-	var anotherLight = new THREE.DirectionalLight( 0xffffff );
-	anotherLight.position.set( -1, - 0.5, -1 );
-	scene.add( anotherLight );
-
-	// floor
+	// Floor
 
 	var geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
 	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 	var material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
 	var mesh = new THREE.Mesh( geometry, material );
-	mesh.position.y = -100;
+	mesh.position.y = 0;
 	scene.add(mesh);
 
 	return scene;
@@ -229,18 +234,6 @@ function setupStats(container) {
 	return stats;
 }
 
-
-// function rColl(collidees, collider, callback){
-// 	if (collidees.hasOwnProperty("children")){
-// 		if(collidees.children.length >= 0){
-// 			var results = detectCollision(collidees.children, collider);
-// 			if(results) callback(results);
-// 			for (var i = 0; i < collidees.children.length; ++i){
-// 				rColl(collidees.children[i], collider, callback);
-// 			}
-// 		} 	
-// 	}	
-// }
 
 function detectCollision(collidees, collider) {
 
@@ -275,7 +268,7 @@ function detectCollision(collidees, collider) {
 				(directions[key].length > 1) ? localVertex =  vertices[directions[key][0]].clone().addSelf(vertices[directions[key][1]].clone()) : localVertex = vertices[directions[key][0]].clone();	
 				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
 				directionVector = globalVertex.subSelf( coll.getObject().position );
-				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize() );
+				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize(), 0, 1000 );
 				intersects = ray.intersectObjects(obj, true);
 				if (intersects.length > 0) {
 					distance = intersects[ 0 ].distance;

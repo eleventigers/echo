@@ -74,7 +74,7 @@ StateManager = function (init_state, canvas_object) {
 	// Mouse clicked (down)
 	canvas_object.addEventListener("mousedown", function() {
 		if (typeof self.activeAppState.onMouseDown === 'function')
-			self.activeAppState.onMouseDown(self.cursor.x, self.cursor.y);
+			self.activeAppState.onMouseDown(event, self.cursor.x, self.cursor.y);
 
 		self.cursor.down = true;
 	});
@@ -82,7 +82,7 @@ StateManager = function (init_state, canvas_object) {
 	// Mouse released (up)
 	canvas_object.addEventListener("mouseup", function() {
 		if (typeof self.activeAppState.onMouseUp === 'function')
-			self.activeAppState.onMouseUp(self.cursor.x, self.cursor.y);
+			self.activeAppState.onMouseUp(event, self.cursor.x, self.cursor.y);
 
 		self.cursor.down = false;
 	});

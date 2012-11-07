@@ -9,7 +9,7 @@ var PointerLockControls = function ( camera ) {
 	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
 	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
 
-	yawObject.position.y = 0;
+	yawObject.position.y = 1;
 	yawObject.add( pitchObject );
 
 	var moveForward = false;
@@ -20,7 +20,7 @@ var PointerLockControls = function ( camera ) {
 	var airSmooth = 5;
 	var stepsZ = 0;
 	var stepsX = 0;
-	var isOnObject = false;
+	var onObject = false;
 	var belowObject = false;
 	var frontObject = false;
 	var backObject = false;
@@ -43,7 +43,7 @@ var PointerLockControls = function ( camera ) {
 				belowObject = object;
 				break;
 			case "down":
-				isOnObject = object;
+				onObject = object;
 				(!object) ? ++inAir : inAir = 0;
 				break;
 			case "front":
@@ -147,6 +147,10 @@ var PointerLockControls = function ( camera ) {
 		return yawObject;
 	};
 
+	this.getOn = function() {
+		return onObject;
+	}
+
 	this.collUpdate = function(collisions) {
 		for (key in collisions){
 			if (collisions.hasOwnProperty(key)){
@@ -165,16 +169,16 @@ var PointerLockControls = function ( camera ) {
 		velocity.x += ( - velocity.x ) * 0.08 * delta;
 		velocity.z += ( - velocity.z ) * 0.08 * delta;
 
-		if(!isOnObject && inAir > airSmooth){
+		if(!onObject && inAir > airSmooth){
 			velocity.y -= 0.25 * delta; 
 		} 		
-		if (isOnObject){
+		if (onObject){
 			yawObject.position.y = floor.y+yawObject.boundRadius;
 			velocity.y = Math.max( 0, velocity.y );
 		}
 
 		if (belowObject){
-			if(!isOnObject && velocity.y > 0) {
+			if(!onObject && velocity.y > 0) {
 				yawObject.position.y = ceiling.y-yawObject.boundRadius; 
 				//to make it more natural shake the object on head bump 
 				velocity.x += Math.random()*3-1;
