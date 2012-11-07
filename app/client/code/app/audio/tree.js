@@ -114,21 +114,21 @@ Audio.Tree.prototype.build = function(){
 			this.avgCentroid = this.sumCentroid / this.avgCount;
 
 			if (loudness < this.avgLoudness){
-				if (turtle.stack.length>0) turtle.pop();	
-				cent /= -100 * Math.sin(loudness);
+				if (turtle.stack.length>0) turtle.pop();
+				cent /= -1 * Math.sin(loudness);
 				loudness *= -1;
 			}
 
 			if (centroid > this.avgCentroid){
-				turtle.push();
+				turtle.push();	
 			}
 
 			turtle.pitch(cent);
 			//turtle.yaw(cent);
 			//turtle.roll(cent);
-			turtle.setWidth(Math.cos(cent)*loudness/10);
+			turtle.setWidth(Math.sin(cent)*loudness/10);
 			// turtle.setColor(color);
-			var mesh = turtle.drop(cent*loudness/50);
+			var mesh = turtle.drop(cent*loudness/100);
 			
 			mesh.sampleStart = this.getSampleTime();
 			mesh.sampleDuration = this.processor.bufferSize / this.sampleRate;
@@ -172,25 +172,31 @@ Audio.Tree.prototype.play = function (params) {
 	}
 
 	if (this.getVoiceCount() <= this.maxVoices && !this.building){
-		var sample = (!params.sample) ? this.initParams.stream : params.sample;
-		if (!params.object){
-			var sampleStart = (!params.sampleStart) ? this.initParams.sampleStart : params.sampleStart;
-			var sampleDuration = (!params.sampleDuration) ? this.initParams.sampleDuration : params.sampleDuration;
-			if (params.position) this.posUpdate(params.position);
-			if (this.parent.turtle && params.position) this.parent.turtle.position.copy(params.position);
-		} else {
-			var sampleStart = (!params.object.sampleStart) ?  this.initParams.sampleStart : params.object.sampleStart;
-			var sampleDuration = (!params.object.sampleDuration) ? this.initParams.sampleDuration : params.object.sampleDuration;
-			if (params.object.position) this.posUpdate(params.object.position);
-			if (this.parent.turtle && params.object.position) this.parent.turtle.position.copy(params.object.position);
-		}
 		
-		this.building = (params.build) ? params.build : false;
-		var index = this.getVoiceCount();
-		var voice = new Voice(this, sample, deleteVoiceOnStop, index);
-		this.voices[index] = voice;
-		this.voices[index].play(sampleStart+Math.random()*0.01, sampleDuration);
+			var sample = (!params.sample) ? this.initParams.stream : params.sample;
+			if (!params.object){
+				var sampleStart = (!params.sampleStart) ? this.initParams.sampleStart : params.sampleStart;
+				var sampleDuration = (!params.sampleDuration) ? this.initParams.sampleDuration : params.sampleDuration;
+				if (params.position) this.posUpdate(params.position);
+				if (this.parent.turtle && params.position) this.parent.turtle.position.copy(params.position);
+			} else {
+				var sampleStart = (!params.object.sampleStart) ?  this.initParams.sampleStart : params.object.sampleStart;
+				var sampleDuration = (!params.object.sampleDuration) ? this.initParams.sampleDuration : params.object.sampleDuration;
+				if (params.object.position) this.posUpdate(params.object.position);
+				if (this.parent.turtle && params.object.position) this.parent.turtle.position.copy(params.object.position);
+			}
+
+			this.building = (params.build) ? params.build : false;
+			var index = this.getVoiceCount();
+			var voice = new Voice(this, sample, deleteVoiceOnStop, index);
+			this.voices[index] = voice;
+			this.voices[index].play(sampleStart+Math.random()*0.01, sampleDuration);
+		
 	}	
+};
+
+Audio.Tree.prototype.playSequence = function (seq) {
+		console.log(seq);
 };
 
 function Voice (parent, buffer, onStop, index) {

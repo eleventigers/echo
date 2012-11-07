@@ -85,6 +85,38 @@ defaultState.onMouseDown = function(event, x, y){
 		event.preventDefault();
 		
 		if(event.button === 0){
+			if(this.collected.length > 0){
+
+				var vector = new THREE.Vector3( x, y, 0.5 );
+				var projector = new THREE.Projector();
+				projector.unprojectVector( vector, this.camera );
+
+				var origin = this.controls.getObject().position.clone();
+				var direction = vector.subSelf(this.controls.getObject().position.clone()).normalize();
+
+				var tree = new THREE.Object3D();
+				var sound = new Audio.Tree({scene:this.audio});
+				tree.add(sound);
+				tree.sound = sound;
+
+				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+				var normalizationMatrix = new THREE.Matrix4();
+				normalizationMatrix.rotateX(Math.PI / 2);
+				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+				turtleGeometry.applyMatrix(normalizationMatrix);
+				turtleGeometry.computeBoundingSphere();	
+				var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
+
+				tree.add(turtle);
+				tree.turtle = turtle;
+
+				this.scene.add(tree);
+
+				tree.sound.playSequence(this.collected);	
+			}
+			
+			
 			
 		}
 
@@ -93,6 +125,7 @@ defaultState.onMouseDown = function(event, x, y){
 				if (colls.down){
 					var obj = colls.down.object;
 					if(obj.sample && obj.sampleStart && obj.sampleDuration){
+						obj.parent.sound.play(obj);
 						var pick = obj.pickUp();
 						this.collected.push(pick);
 						console.log(this.collected);
@@ -151,7 +184,7 @@ defaultState.onActivation = function() {
 	this.stats = setupStats(container);
 
 	if(this.audio){
-		var sample = "woodoverblade.wav";
+		var sample = "flickburn.WAV";
 		this.audio.loadBuffers(["/sounds/"+sample], function(status, buffers){
 			if (status){		
 				// First sound
@@ -167,7 +200,7 @@ defaultState.onActivation = function() {
 				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 				turtleGeometry.applyMatrix(normalizationMatrix);
 				turtleGeometry.computeBoundingSphere();	
-				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(1, 0.51, 0.1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(1, 0.51, 0.19), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
 
 				tree.add(turtle);
 				tree.turtle = turtle;

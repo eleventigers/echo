@@ -40,7 +40,7 @@ Turtle.prototype.drop = function(distance){
 		mesh.pickUp = function(time){
 			var time = (time) ? time : 1000;
 			var self = this;
-			var id = window.setInterval(function() {self.parent.remove(self); window.clearInterval(id);}, time);
+			var id = window.setInterval(function() {window.clearInterval(id); self.parent.remove(self); }, time);
 			return self;
 		}
 		bottomRadius = this.width;
@@ -60,10 +60,10 @@ Turtle.prototype.drop = function(distance){
 Turtle.prototype.shoot = function(){
 
 		var ray = new THREE.Ray(this.position.clone(), this.direction.clone().normalize());
-		var intersects = ray.intersectObjects(this.collidable);
+		var intersects = ray.intersectObjects(this.collidable, true);
 	
 		if (intersects.length > 0){
-			if (intersects[0].distance > 0.0001 && intersects[0].distance < 10){
+			if (intersects[0].distance > 0.0001 && intersects[0].distance < 100){
 				
 				this.direction.crossSelf(intersects[0].object.position.clone().normalize());
 			}
