@@ -132,6 +132,7 @@ Audio.Tree.prototype.build = function(){
 			
 			mesh.sampleStart = this.getSampleTime();
 			mesh.sampleDuration = this.processor.bufferSize / this.sampleRate;
+			mesh.sample = this.initParams.stream;
 			//console.log(this.processor.bufferSize / this.sampleRate);
 			//mesh.suicide(5000);
 	

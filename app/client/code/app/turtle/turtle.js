@@ -37,10 +37,11 @@ Turtle.prototype.drop = function(distance){
     if (this.drawing) {
         distance = this.position.distanceTo(newPosition);
 		mesh = new THREE.Mesh(this.geometry, this.material);
-		mesh.suicide = function(time){
+		mesh.pickUp = function(time){
 			var time = (time) ? time : 1000;
 			var self = this;
-			var id = window.setInterval(function() {self.parent.remove(self); window.clearInterval(id);},  time);
+			var id = window.setInterval(function() {self.parent.remove(self); window.clearInterval(id);}, time);
+			return self;
 		}
 		bottomRadius = this.width;
 		topRadius = this.width;

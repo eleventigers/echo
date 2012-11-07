@@ -2,7 +2,7 @@ GameState = function () {
 
 	// Game running or paused
 	this.running = false;
-	
+
 	// Function fired on every iteration of the game loop
 	this.onLoop = null;
 
@@ -43,6 +43,9 @@ GameState = function () {
 	// THREE.js scene
 	this.scene = null;
 
+	// THREE.js camera
+	this.camera = null;
+
 	// Web Audio context
 	this.audio = null;
 
@@ -51,6 +54,9 @@ GameState = function () {
 
 	// Called when this state is set active
 	this.onActivation = null;
+
+	// Collected items
+	this.collected = [];
 
 }
 

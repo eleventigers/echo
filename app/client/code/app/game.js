@@ -81,14 +81,24 @@ defaultState.onMouseMove = function(prevX, prevY, x, y, prevMoveX, prevMoveY, mo
 };
 defaultState.onMouseDown = function(event, x, y){
 	if(this.running){
+		
 		event.preventDefault();
-		var projector = new THREE.Projector();
-		var vector = new THREE.Vector3( x, y, 0.5 );
-		projector.unprojectVector( vector, this.camera );
-		var direction = vector.subSelf( this.controls.getObject().position.clone() ).normalize();
-		var origin = this.controls.getObject().position.clone();
+		
+		if(event.button === 0){
+			
+		}
 
-		console.log(this.controls.getOn());
+		if(event.button === 2){
+			var colls = detectCollision(this.scene.children, this.controls);
+				if (colls.down){
+					var obj = colls.down.object;
+					if(obj.sample && obj.sampleStart && obj.sampleDuration){
+						var pick = obj.pickUp();
+						this.collected.push(pick);
+						console.log(this.collected);
+					}
+				}	
+		}		
 		
 	}
 };
