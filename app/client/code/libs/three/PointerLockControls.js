@@ -170,7 +170,7 @@ var PointerLockControls = function ( camera ) {
 		velocity.z += ( - velocity.z ) * 0.08 * delta;
 
 		if(!onObject && inAir > airSmooth){
-			velocity.y -= 0.25 * delta; 
+			velocity.y -= 0.15 * delta; 
 		} 		
 		if (onObject){
 			yawObject.position.y = floor.y+yawObject.boundRadius;

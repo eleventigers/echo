@@ -38,9 +38,10 @@ Turtle.prototype.drop = function(distance){
         distance = this.position.distanceTo(newPosition);
 		mesh = new THREE.Mesh(this.geometry, this.material);
 		mesh.pickUp = function(time){
-			var time = (time) ? time : 1000;
+			var time = (time) ? time : 0;
 			var self = this;
-			var id = window.setInterval(function() {window.clearInterval(id); self.parent.remove(self); }, time);
+			var parent = this.parent;
+			var id = window.setInterval(function() {window.clearInterval(id); parent.removeChild(self); }, time);
 			return self;
 		}
 		bottomRadius = this.width;
@@ -63,15 +64,16 @@ Turtle.prototype.shoot = function(){
 		var intersects = ray.intersectObjects(this.collidable, true);
 	
 		if (intersects.length > 0){
-			if (intersects[0].distance > 0.0001 && intersects[0].distance < 100){
+			if (intersects[0].distance > 0.0001 && intersects[0].distance < 10){
 				
+				var prevDir = this.direction.clone();
 				this.direction.crossSelf(intersects[0].object.position.clone().normalize());
-			}
-			
-			//this.position.multiplyScalar(intersects[0].distance);
-			
+				(this.direction.isZero()) ? this.direction.subSelf(new THREE.Vector3(1,1,1)) : this.direction;
+				if (intersects[0].object.parent) {
+					//if (intersects[0].object.parent.removeChild) intersects[0].object.parent.removeChild(intersects[0].object);
+				}
+			}			
 		}
-
 };
 
 Turtle.prototype.yaw = function(angle) {

@@ -144,6 +144,7 @@ Audio.Scene.prototype.loadBuffers = function(urlList, callback) {
     var count = 0;
     for (var i = 0; i < urlList.length; ++i)
     this.loadBuffer(urlList[i], function(status, buffer){
+
         if (status){
           ++count;
         } 

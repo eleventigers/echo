@@ -2,4 +2,9 @@
  * @author eleventigers / http://jokubasdargis.com/
  */
 
-exports.Audio = Audio || { REVISION: '1' };
+Audio = function(){
+
+
+}
+
+Audio.prototype.constructor = Audio; 

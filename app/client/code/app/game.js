@@ -87,15 +87,14 @@ defaultState.onMouseDown = function(event, x, y){
 		if(event.button === 0){
 			if(this.collected.length > 0){
 
-				var vector = new THREE.Vector3( x, y, 0.5 );
-				var projector = new THREE.Projector();
-				projector.unprojectVector( vector, this.camera );
+				var origin = this.controls.getObject().position.clone().addSelf(new THREE.Vector3(0,0,this.controls.getObject().boundRadius+10));
+				var vertices = this.controls.getObject().geometry.vertices;
+				var localVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
+				var globalVertex = this.controls.getObject().matrix.multiplyVector3(localVertex);
+				var direction = globalVertex.subSelf(origin).normalize();
 
-				var origin = this.controls.getObject().position.clone();
-				var direction = vector.subSelf(this.controls.getObject().position.clone()).normalize();
-
-				var tree = new THREE.Object3D();
-				var sound = new Audio.Tree({scene:this.audio});
+				var tree = new Struct.Tree();
+				var sound = new Audio.Org({scene:this.audio});
 				tree.add(sound);
 				tree.sound = sound;
 
@@ -113,19 +112,19 @@ defaultState.onMouseDown = function(event, x, y){
 
 				this.scene.add(tree);
 
-				tree.sound.playSequence(this.collected);	
-			}
-			
-			
+				tree.sound.playSequence(this.collected);
+				this.collected = [];	
+			}		
 			
 		}
 
 		if(event.button === 2){
 			var colls = detectCollision(this.scene.children, this.controls);
-				if (colls.down){
-					var obj = colls.down.object;
-					if(obj.sample && obj.sampleStart && obj.sampleDuration){
-						obj.parent.sound.play(obj);
+				if (colls.down || colls.front){
+					var obj = colls.front.object || colls.down.object;
+					console.log(obj);
+					if(obj.sample){
+						//obj.parent.sound.play(obj);
 						var pick = obj.pickUp();
 						this.collected.push(pick);
 						console.log(this.collected);
@@ -184,31 +183,35 @@ defaultState.onActivation = function() {
 	this.stats = setupStats(container);
 
 	if(this.audio){
-		var sample = "flickburn.WAV";
-		this.audio.loadBuffers(["/sounds/"+sample], function(status, buffers){
-			if (status){		
-				// First sound
-				var tree = new THREE.Object3D();
-				var sound = new Audio.Tree({scene:self.audio, stream: buffers[sample], loop: false, sampleStart: 0, sampleDuration: 0});
-				tree.add(sound);
-				tree.sound = sound;
+		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
+		this.audio.loadBuffers(samples, function(status, buffers){
+			if (status){
+				for (var i = 0; i < samples.length; i++){
+					var sample = samples[i].replace(/^.*[\\\/]/, ''); 
+					
+					// First sound
+					var tree = new Struct.Tree();
+					var sound = new Audio.Org({scene:self.audio, stream: buffers[sample], loop: false, sampleStart: 0, sampleDuration: 0});
+					tree.add(sound);
+					tree.sound = sound;
 
-				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-				var normalizationMatrix = new THREE.Matrix4();
-				normalizationMatrix.rotateX(Math.PI / 2);
-				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-				turtleGeometry.applyMatrix(normalizationMatrix);
-				turtleGeometry.computeBoundingSphere();	
-				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(1, 0.51, 0.19), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+					var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+					var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+					var normalizationMatrix = new THREE.Matrix4();
+					normalizationMatrix.rotateX(Math.PI / 2);
+					normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+					turtleGeometry.applyMatrix(normalizationMatrix);
+					turtleGeometry.computeBoundingSphere();	
+					var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
 
-				tree.add(turtle);
-				tree.turtle = turtle;
+					tree.add(turtle);
+					tree.turtle = turtle;
 
-				self.scene.add(tree);
-				tree.sound.play({build:true});	
-			}
-		});
+					self.scene.add(tree);
+					tree.sound.play({build:true});		
+				}
+			}			
+		});		
 	}
 }
 
