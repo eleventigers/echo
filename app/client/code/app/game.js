@@ -181,9 +181,14 @@ defaultState.onActivation = function() {
 	this.scene.add(this.controls.getObject());
 	this.audio = setupAudio(this.camera);
 	this.stats = setupStats(container);
+	this.trace = new Trace();
+	var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
+	this.trace.buffers.loadFreesound(["4456", "21964"], false, function(buffers){
+		console.log(buffers);
+	});
+	//console.log(this.trace.buffers.get());
 
 	if(this.audio){
-		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
 		this.audio.loadBuffers(samples, function(status, buffers){
 			if (status){
 				for (var i = 0; i < samples.length; i++){
