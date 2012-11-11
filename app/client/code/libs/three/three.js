@@ -3424,7 +3424,7 @@ THREE.Object3D.prototype = {
 
 		}
 
-		// if ( object instanceof THREE.Object3D ) {
+		if ( object instanceof THREE.Object3D ) {
 
 			if ( object.parent !== undefined ) {
 
@@ -3451,7 +3451,7 @@ THREE.Object3D.prototype = {
 
 			}
 
-		// }
+		}
 
 	},
 

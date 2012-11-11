@@ -194,8 +194,8 @@ defaultState.onActivation = function() {
 		var tree = new Struct.Tree();
 		var testsound = new self.trace.Sound3D();
 		tree.add(testsound);
-		//sound.activate(true);	
-		console.log(testsound);
+		//testsound.activate(true);	
+	
 		// var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
 		// var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
 		// var normalizationMatrix = new THREE.Matrix4();
@@ -207,12 +207,11 @@ defaultState.onActivation = function() {
 
 		// tree.add(turtle);	
 		// self.scene.add(tree);
+
 		// tree.sound = testsound;
 		// tree.turtle = turtle;
-
 		
-		
-		//tree.sound.play({sample:self.trace.buffers.get("4456"), sampleStart:0, sampleDuration:0});
+		// tree.sound.play({sample:self.trace.buffers.get("4456"), sampleStart:0, sampleDuration:0});
 		
 		
 	});
