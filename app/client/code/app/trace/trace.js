@@ -1,14 +1,201 @@
 (function (window) {
-
 	var userContext,
         userInstance,
         Trace = function (context) {
             if (!context) {
-                console.log("tuna.js: Missing audio context! Creating a new context for you.");
                 context = window.webkitAudioContext && (new window.webkitAudioContext());
             }
+
             userContext = context;
             userInstance = this;
+
+            ////////// Defining audio context listener, depends on THRE.js being present //////////
+
+            if (typeof THREE === "undefined"){ 
+                        console.error("trace.js: THREE.js library is missing, therefore trace.js is crippled severely");
+            } else {
+                this.listener = (function(){
+                    var posNew = new THREE.Vector3();
+                    var posOld = new THREE.Vector3();
+                    var posDelta = new THREE.Vector3();
+                    var posFront = new THREE.Vector3();
+                    return {
+                        update : function(object){
+                            if(!object){
+                                return false;
+                            } else {
+                                posOld.copy( posNew );
+                                posNew.copy( object.matrixWorld.getPosition() );
+                                posDelta.sub( posNew, posOld );
+                                posFront.set( 0, 0, -1 );
+                                object.matrixWorld.rotateAxis( posFront );
+                                posFront.normalize();
+                                userContext.listener.setPosition( posNew.x, posNew.y, posNew.z );
+                                userContext.listener.setVelocity( posDelta.x, posDelta.y, posDelta.z );
+                                userContext.listener.setOrientation( posFront.x, posFront.y, posFront.z, object.up.x, object.up.y, object.up.z );
+                                return true;
+                            }
+                        }
+                    };
+                })();
+            }
+
+            ////////// Handling url and Freesound API served buffers here //////////
+
+            this.buffers = (function(){     
+                 if (typeof FS === "undefined") {  // Freesound API js library is required to use load Freesound buffers
+                    console.error( "trace.js: Freesound library is missing, won't be able to load sounds from Freesound" );
+                } else {
+                    var freesound = new Freesound('d34c2909acd242819a7f4ceba6a7c041', true);
+                } 
+
+                var store = {}; // keeping all loaded buffers here
+
+                function loadBuffer(url, callback) {
+                    var request = new XMLHttpRequest();
+                    var filename = url.replace(/^.*[\\\/]/, '');
+                    request.open("GET", url, true);
+                    request.responseType = "arraybuffer";
+                    request.onload = function() {
+                        userContext.decodeAudioData(
+                            request.response,
+                            function(buffer) {
+                                if (!buffer) {
+                                  console.error('trace.js: error decoding file data: ' + url);
+                                  callback(false);
+                                  return;
+                                }
+                                store[filename] = buffer;
+                                callback(true, buffer);
+                            }
+                        );
+                    }
+                    request.onerror = function() {
+                        console.error('trace.js: XHR error while loading buffer');
+                        callback(false);
+                    }
+                    request.send();
+                }
+
+                function loadFreesoundBuffer (id, analysis, callback) {
+                    var url, filename, returnedSndInfo;
+                    var request = new XMLHttpRequest();
+                    freesound.getSound(id, function(sound){
+                        returnedSndInfo = sound;
+                        url = sound.properties['preview-hq-mp3'];
+                        filename = id;//url.replace(/^.*[\\\/]/, '');
+                        request.open("GET", url, true);
+                        request.responseType = "arraybuffer";
+                        request.send();
+                        }, 
+                        function(){console.error("trace.js: error fetching Freesound resource: " + id);
+                    });
+                    request.onload = function() {
+                        userContext.decodeAudioData(
+                            request.response,
+                            function(buffer) {
+                                if (!buffer) {
+                                    console.error('trace.js: error decoding file data: ' + url);
+                                    return;
+                                }
+                                if(analysis) {
+                                    buffer.meta = returnedSndInfo;
+                                    returnedSndInfo.getAnalysisFrames(function(analysis){
+                                        buffer.meta.properties.analysis_frames = analysis;
+                                        store[filename] = buffer;
+                                        callback(true, buffer);
+                                    });
+                                } else {
+                                    store[filename] = buffer;
+                                    callback(true, buffer);
+                                }          
+                            }
+                        );
+                    }
+                    request.onerror = function() {
+                        console.error('trace.js: XHR error while loading Freesound buffer');
+                        callback(false);
+                    }   
+                }
+
+                return {
+                    get: function(name){
+                        if (name) {
+                            return (store.hasOwnProperty(name)) ? store[name] : false;
+                        } else {
+                            return store;
+                        }
+                    },
+                    remove: function(name){
+                        if (name){
+                            if (store.hasOwnProperty(name)) {
+                                delete store[name];
+                            }
+                        }
+                    },
+                    load: function(url, callback){
+                        if( Object.prototype.toString.call( url ) === '[object Array]' ){
+                            var count = 0;
+                            var i;
+                            var buffers = [];
+                            for (i = 0; i < url.length; ++i) {
+                                loadBuffer(url[i], function(status, buffer){
+                                    if (status){
+                                        ++count;
+                                        buffers.push(buffer);
+                                    } 
+                                    if (count === url.length) {
+                                        if (callback) callback(buffers);
+                                    }
+                                    if (count !== url.length && i === url.length-1) {
+                                        if (callback) callback(false);
+                                    }
+                                });                               
+                            }      
+                        } else {
+                            loadBuffer(url, function(status, buffer){
+                                if (status){
+                                    if (callback) callback(buffer);
+                                } else {
+                                     if (callback) callback(false);
+                                }
+                            });
+                        }
+                    },
+                    loadFreesound : function(id, analysis, callback){
+                        if (!freesound) return;
+                        if( Object.prototype.toString.call( id ) === '[object Array]' ){
+                            var count = 0;
+                            var i;
+                            var buffers = [];
+                            for (i = 0; i < id.length; ++i) {
+                                loadFreesoundBuffer(id[i], analysis, function(status, buffer){
+                                    if (status){
+                                        ++count;
+                                        buffers.push(buffer);
+                                    } 
+                                    if (count === id.length) {
+                                        if (callback) callback(buffers);
+                                    }
+                                    if (count !== id.length && i === id.length-1) {
+                                        if (callback) callback(false);
+                                    }
+                                });                               
+                            }      
+                        } else {
+                            loadFreesoundBuffer(id, analysis, function(status, buffer){
+                                if (status){
+                                    if (callback) callback(buffer);
+                                } else {
+                                     if (callback) callback(false);
+                                }
+                            });
+                        }
+                    }
+                }
+            })(); 
+
+            ////////// /////////     
         },
         version = "0.1",
         set = "setValueAtTime",
@@ -151,17 +338,67 @@
     function tanh (n) {
         return (Math.exp(n) - Math.exp(-n)) / (Math.exp(n) + Math.exp(-n));
     }
-    Trace.prototype.updateListener = function(object){
-    	
-    	
+
+    Trace.prototype.Sound3D = function(properties){
+
+        if (!properties) {
+            properties = this.getDefaults();
+        }
+
+        THREE.Object3D.call(this);
+
+        this.input = userContext.createGainNode();
+        this.activateNode = userContext.createGainNode();
+        this.panner = userContext.createPanner();
+        this.output = userContext.createGainNode();
+        this.analyser = userContext.createAnalyser();  
+
+        this.activateNode.connect(this.panner);
+        this.activateNode.connect(this.analyser);
+        this.panner.connect(this.output);
+
+        this.panner.refDistance = properties.refDistance || this.defaults.refDistance.value;
+        this.panner.rolloffFactor = properties.rolloffFactor || this.defaults.rolloffFactor.value; 
+        this.analyser.smoothingTimeConstant = properties.smoothingTimeConstant || this.defaults.smoothingTimeConstant.value; 
+        this.analyser.fftSize = properties.fftSize || this.defaults.fftSize.value; 
+        this.sampleRate = userContext.sampleRate;
+        this.fftRes = this.sampleRate / this.analyser.fftSize;
+        this.bypass = false;
+
+        this.oldPosition = new THREE.Vector3();
+        this.posDelta = new THREE.Vector3();
 
 
+    };
 
-
-    }; 
-    
+    Trace.prototype.Sound3D.prototype = THREE.Object3D();
+    Trace.prototype.Sound3D.prototype = Object.create(Super, {
+        traceName: {value: "Sound3D"},
+        defaults: {
+            value: {
+                refDistance: {value: 20, min: 0, max: 1000, automatable: false, type: FLOAT},
+                rolloffFactor: {value: 2, min: 0, max: 1000, automatable: false, type: FLOAT},
+                smoothingTimeConstant: {value: 0.3, min: 0, max: 1, automatable: false, type: FLOAT},
+                fftSize: {value: 2048, min: 256, max: 4096, automatable: false, type: INT},
+                bypass: {value: true, automatable: false, type: BOOLEAN}
+            }
+        }, 
+        panPos: {
+            enumerable: true, 
+            get: function () {return this.position},
+            set: function (position) {
+                console.log(position);
+                this.oldPosition.copy( this.position );
+                this.position.copy( position );
+                this.posDelta.sub( this.position, this.oldPosition );
+                this.panner.setPosition( this.position.x, this.position.y, this.position.z );
+                this.panner.setVelocity( this.posDelta.x, this.posDelta.y, this.posDelta.z );       
+            }
+        }
+    });
+ 
     Trace.toString = Trace.prototype.toString = function () {
-        return "You are running Trace version " + version + " by eleventigers!";
+        return "Trace " + version + " by eleventigers!";
     };
     (typeof define != "undefined" ? (define("Trace", [], function () {return Trace})) : window.Trace = Trace)
 	
