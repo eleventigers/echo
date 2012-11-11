@@ -373,7 +373,6 @@
 
     };
 
-    Trace.prototype.Sound3D.prototype = THREE.Object3D();
     Trace.prototype.Sound3D.prototype = Object.create(Super, {
         traceName: {value: "Sound3D"},
         defaults: {
@@ -394,24 +393,23 @@
             }
         },
         play: {
+            enumerable: true,
             value: function(value){
 
                 var self = this;
-                var seq = value;
-                var length = 0;
-                var current = 0;
-
-                var onSamplerStop = function(){
-                        if(current === length) self.stop();
-                        if(current < length) playNext(current);
-                        
-                };
+                    seq = value,
+                    length = 0,
+                    current = 0;
+                    
+                function onSamplerStop(){
+                    if(current === length) self.stop();
+                    if(current < length) playNext(current);              
+                }
 
                 this.sampler = new userInstance.Sampler({onStop: onSamplerStop});
 
                 if( Object.prototype.toString.call( seq ) === '[object Array]' ){
                     length = seq.length;
-
                     var playNext = function (seqNr){
                         ++current;
                         self.buffer = seq[seqNr].sample; 
@@ -435,17 +433,65 @@
                     this.sampler.play(buffer, start, duration);
                     if (seq.position) this.panPos(seq.position);
                     if (this.parent && this.parent.turtle && seq.position) this.parent.turtle.position.copy(seq.position);
-
                 }
-
             }
         },
         stop: {
+            enumerable: true,
             value: function(){
                 if(this.sampler) this.sampler.disconnect(this.activateNode);
-
             }
         },
+        build: {
+            value: function(){
+                console.log(this.parent);
+                if(this.parent && this.parent.turtle){
+
+                    var angle = 0,
+                        turtle = this.parent.turtle,
+                        analysis = this.analyser.analysis,
+                        cent = 360  / analysis.centroid * analysis.loudness;
+
+                    if (!isFinite(cent)){
+                        cent = 0;
+                    }
+
+                    if (analysis.loudness > 0){
+                        if (turtle.stack.length>0) turtle.pop();
+                        turtle.penDown; 
+
+                        if (analysis.loudness > analysis.avgLoudness){
+                            //turtle.push();
+                            cent /= -100 * Math.sin(analysis.loudness);
+                            angle = cent * analysis.loudness / 10;
+                        }
+
+                        turtle.pitch(angle);
+                        turtle.yaw(cent);
+                        //turtle.roll(cent);
+                        var width = Math.log(analysis.loudness)+cent;
+                        (width < 0) ? width *= -1 : width = width;
+                        turtle.setWidth(width);
+                        var distance = analysis.loudness*Math.atan(cent)/10;
+                        (distance < 0) ? distance *= -1 : distance = distance;
+                        var drop = turtle.drop(distance);
+                        this.panPos(turtle.position);
+
+                        this.parent.add(drop);
+
+                        // var delta = ((this.currentTime - this.prevBuildTime) > 0) ? this.currentTime - this.prevBuildTime : this.processor.bufferSize / this.sampleRate;
+                        // //console.log(delta);
+                        // var start = this.currentTime;
+                        // this.release(this.sample, start, delta);
+
+                        // this.prevBuildTime = this.currentTime;
+                    
+                                    
+                    }
+
+                }            
+            }
+        },    
         init: {
             value: function(){
                 this.panner.refDistance = 20;
@@ -453,6 +499,7 @@
             }
         }
     });
+
 
     //////////// //////////////
 

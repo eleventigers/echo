@@ -2,7 +2,7 @@ Struct.Tree = function (parameters) {
 	THREE.Object3D.call(this);
 }
 Struct.Tree.prototype = new THREE.Object3D();
-Struct.Tree.prototype.constructor = Struct;
+Struct.Tree.prototype.constructor = Struct.Tree;
 Struct.Tree.prototype.removeChild = function(child){
 	if(child && this.children.length > 0){	
 		if(_.contains(this.children, child)){

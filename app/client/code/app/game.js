@@ -152,7 +152,7 @@ defaultState.onRender = function(){
 		this.renderer.render( this.scene, this.camera );
 		//new stuf
 		this.trace.listener.update(this.camera);
-		console.log(this.testSound.sampler.meanTime);
+		//this.tree.sound.build();
 
 		TIME = Date.now();
 	}	
@@ -190,46 +190,64 @@ defaultState.onActivation = function() {
 	this.trace = new Trace();
 	var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
 	this.trace.buffers.loadFreesound(["4456", "21964"], false, function(buffers){
-		self.testSound = new self.trace.Sound3D();
-		self.testSound.activate(true);
-		console.log(self.testSound);
-		self.testSound.play({sample:self.trace.buffers.get("21964"), sampleStart:15, sampleDuration:0});
-		// self.testSound.player.play(self.trace.buffers.get("21964"), 10, 0);
+
+		var tree = new Struct.Tree();
+		var testsound = new self.trace.Sound3D();
+		tree.add(testsound);
+		//sound.activate(true);	
+		console.log(testsound);
+		// var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+		// var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+		// var normalizationMatrix = new THREE.Matrix4();
+		// normalizationMatrix.rotateX(Math.PI / 2);
+		// normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+		// turtleGeometry.applyMatrix(normalizationMatrix);
+		// turtleGeometry.computeBoundingSphere();	
+		// var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+
+		// tree.add(turtle);	
+		// self.scene.add(tree);
+		// tree.sound = testsound;
+		// tree.turtle = turtle;
+
+		
+		
+		//tree.sound.play({sample:self.trace.buffers.get("4456"), sampleStart:0, sampleDuration:0});
 		
 		
 	});
 	
 
-	if(this.audio){
-		this.audio.loadBuffers(samples, function(status, buffers){
-			if (status){
-				// for (var i = 0; i < samples.length; i++){
-				// 	var sample = samples[i].replace(/^.*[\\\/]/, ''); 
+	// if(this.audio){
+	// 	this.audio.loadBuffers(samples, function(status, buffers){
+	// 		if (status){
+	// 			// for (var i = 0; i < samples.length; i++){
+	// 			// 	var sample = samples[i].replace(/^.*[\\\/]/, ''); 
 					
-				// 	// First sound
-				// 	var tree = new Struct.Tree();
-				// 	var sound = new Audio.Org({scene:self.audio, stream: buffers[sample], loop: false, sampleStart: 0, sampleDuration: 0});
-				// 	tree.add(sound);
-				// 	tree.sound = sound;
+	// 			// 	// First sound
+	// 			// 	var tree = new Struct.Tree();
+	// 			// 	var sound = new Audio.Org({scene:self.audio, stream: buffers[sample], loop: false, sampleStart: 0, sampleDuration: 0});
+	// 			// 	tree.add(sound);
+	// 			// 	tree.sound = sound;
 
-				// 	var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-				// 	var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-				// 	var normalizationMatrix = new THREE.Matrix4();
-				// 	normalizationMatrix.rotateX(Math.PI / 2);
-				// 	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-				// 	turtleGeometry.applyMatrix(normalizationMatrix);
-				// 	turtleGeometry.computeBoundingSphere();	
-				// 	var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+	// 			// 	var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+	// 			// 	var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+	// 			// 	var normalizationMatrix = new THREE.Matrix4();
+	// 			// 	normalizationMatrix.rotateX(Math.PI / 2);
+	// 			// 	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+	// 			// 	turtleGeometry.applyMatrix(normalizationMatrix);
+	// 			// 	turtleGeometry.computeBoundingSphere();	
+	// 			// 	var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
 
-				// 	tree.add(turtle);
-				// 	tree.turtle = turtle;
+	// 			// 	tree.add(turtle);
+	// 			// 	tree.turtle = turtle;
 
-				// 	self.scene.add(tree);
-				// 	tree.sound.play({build:true});		
-				// }
-			}			
-		});		
-	}
+	// 			// 	self.scene.add(tree);
+	// 			// 	tree.sound.play({build:true});		
+	// 			// }
+	// 		}			
+	// 	});		
+	// }
 }
 
 var stateMan = new StateManager(defaultState, document);
