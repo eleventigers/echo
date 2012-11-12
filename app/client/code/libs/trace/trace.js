@@ -202,30 +202,6 @@
         linear = "linearRampToValueAtTime",
         pipe = function (param, val) {param.value = val}, 
         Super = Object.create(null, {
-            activate: {
-                writable: true, 
-                value: function (doActivate) {
-                    if (doActivate) {
-                        //console.log("activating: " + this.name)
-                        this.input.disconnect();
-                        this.input.connect(this.activateNode);
-                        this.activateCallback && this.activateCallback(doActivate);
-                    } else {
-                        //console.log("deactiving: " + this.name)
-                        this.input.disconnect();
-                        this.input.connect(this.output);
-                    }
-                }  
-            },
-            bypass: {
-                get: function () {return this._bypass},
-                set: function (value) {
-                    if (this._lastBypassValue === value) {return}
-                    this._bypass = value;
-                    this.activate(!value);
-                    this._lastBypassValue = value;
-                }
-            },
             connect: {
                 value: function (target) {
                     this.output.connect(target);
@@ -342,6 +318,7 @@
     ////////// Container for sounds positioned in 3D space ////////////
 
     Trace.prototype.Sound3D = function(properties){
+
         if (!properties) {
             properties = this.getDefaults();
         }
@@ -349,42 +326,39 @@
         THREE.Object3D.call(this);
 
         this.input = userContext.createGainNode();
-        this.activateNode = userContext.createGainNode();
         this.panner = userContext.createPanner();
         this.output = userContext.createGainNode();
         this.analyser = new userInstance.Analyser();
 
-        this.activateNode.connect(this.panner);
-        this.activateNode.connect(this.analyser.input);
+        this.input.connect(this.panner);
+        this.input.connect(this.analyser.input);
         this.panner.connect(this.output);
-        this.output.connect(userContext.destination);
+        this.output.connect(userContext.destination); // destination might be a mixer later
 
         this.init();
         
         this.sampleRate = userContext.sampleRate;
-        this.bypass = false;
 
         this.oldPosition = new THREE.Vector3();
         this.posDelta = new THREE.Vector3();
 
         this.buffer = properties.buffer || this.defaults.buffer.value;
+        this.buildRate = properties.buildRate || this.defaults.buildRate.value;
 
         this.building = false;
 
     };
 
-    Trace.prototype.Sound3D.prototype = Object.create(Super, {
+    Trace.prototype.Sound3D.prototype = Object.create(new THREE.Object3D(), {
         traceName: {value: "Sound3D"},
         defaults: {
             value: {
-                bypass: {value: true, automatable: false, type: BOOLEAN},
-                buffer: {value: null, automatable: false}
+                buffer: {value: null, automatable: false},
+                buildRate: {value: 1024, automatable: false, type: INT}
             }
         }, 
-        panPos: {
-            enumerable: true, 
-            get: function () {return this.position; },
-            set: function (value) {
+        panPos: {  
+            value: function (value) {
                 this.oldPosition.copy( this.position );
                 this.position.copy( value );
                 this.posDelta.sub( this.position, this.oldPosition );
@@ -407,8 +381,11 @@
                 }
 
                 this.sampler = new userInstance.Sampler({onStop: onSamplerStop});
+                this.builder = userContext.createJavaScriptNode(this.buildRate);
+                this.builder.onaudioprocess = function(e) {self.build()};
 
                 if( Object.prototype.toString.call( seq ) === '[object Array]' ){
+
                     length = seq.length;
                     var playNext = function (seqNr){
                         ++current;
@@ -416,36 +393,41 @@
                         var buffer = (!seq[seqNr].sample) ? self.buffer : seq[seqNr].sample;
                         var start = (!seq[seqNr].sampleStart) ?  0 : seq[seqNr].sampleStart;
                         var duration = (!seq[seqNr].sampleDuration) ? 0 : seq[seqNr].sampleDuration;
-                        self.sampler.connect(self.activateNode);
+                        self.builder.connect(self.output);
+                        self.sampler.connect(self.input);
                         self.sampler.play(buffer, start, duration); 
-                        if (seq[seqNr].position) self.panPos(seq[seqNr].position);
-                        if (self.parent && self.parent.turtle && seq[seqNr].position) self.parent.turtle.position.copy(seq[seqNr].position);    
+                        // if (seq[seqNr].position) self.panPos(seq[seqNr].position);
+                        // if (self.parent && self.parent.turtle && seq[seqNr].position) self.parent.turtle.position.copy(seq[seqNr].position);    
                     }
                     playNext(current);
 
                 } else {
                     length = 1;
                     ++current;
+                    self.buffer = seq.sample; 
                     var buffer = (!seq.sample) ? this.buffer : seq.sample;
                     var start = (!seq.sampleStart) ?  0 : seq.sampleStart;
                     var duration = (!seq.sampleDuration) ? 0 : seq.sampleDuration;
-                    this.sampler.connect(this.activateNode);
+                    self.builder.connect(self.output);
+                    this.sampler.connect(this.input);
                     this.sampler.play(buffer, start, duration);
-                    if (seq.position) this.panPos(seq.position);
-                    if (this.parent && this.parent.turtle && seq.position) this.parent.turtle.position.copy(seq.position);
+                    // if (seq.position) this.panPos(seq.position);
+                    // if (this.parent && this.parent.turtle && seq.position) this.parent.turtle.position.copy(seq.position);
                 }
             }
         },
         stop: {
             enumerable: true,
             value: function(){
-                if(this.sampler) this.sampler.disconnect(this.activateNode);
+                if(this.sampler) this.sampler.disconnect(this.input);
+                if(this.builder) this.builder.disconnect(this.output);
             }
         },
         build: {
             value: function(){
-                console.log(this.parent);
+              
                 if(this.parent && this.parent.turtle){
+
 
                     var angle = 0,
                         turtle = this.parent.turtle,
@@ -475,17 +457,17 @@
                         var distance = analysis.loudness*Math.atan(cent)/10;
                         (distance < 0) ? distance *= -1 : distance = distance;
                         var drop = turtle.drop(distance);
-                        this.panPos(turtle.position);
+                       
+                        
+                        drop.sample = this.buffer;
+                        var delta = userContext.currentTime - this.sampler.lastTimeCheck;
+                        drop.sampleDuration = ( delta > 0 ) ? delta : this.builder.bufferSize / this.sampleRate;
+                        drop.sampleStart = this.sampler.meanTime;
+                         
+                        //console.log(drop);
 
                         this.parent.add(drop);
-
-                        // var delta = ((this.currentTime - this.prevBuildTime) > 0) ? this.currentTime - this.prevBuildTime : this.processor.bufferSize / this.sampleRate;
-                        // //console.log(delta);
-                        // var start = this.currentTime;
-                        // this.release(this.sample, start, delta);
-
-                        // this.prevBuildTime = this.currentTime;
-                    
+                        this.panPos(turtle.position);
                                     
                     }
 
@@ -497,9 +479,28 @@
                 this.panner.refDistance = 20;
                 this.panner.rolloffFactor = 2;
             }
+        },
+        getDefaults: {
+                value: function () {
+                    var result = {};
+                    for (var key in this.defaults) {
+                        result[key] = this.defaults[key].value;
+                    }
+                    return result;
+                }
+        },
+        connect: {
+            value: function (target) {
+                 this.output.connect(target);
+            }
+        },
+        disconnect: {
+            value: function () {
+                this.output.disconnect();
+            }
         }
     });
-
+    
 
     //////////// //////////////
 
@@ -517,6 +518,8 @@
         this.maxVoices = properties.maxVoices || this.defaults.maxVoices.value;
         this.onStop = properties.onStop || this.defaults.onStop.value;
         this.playing = false;
+
+        this.lastTimeCheck = userContext.currentTime;
 
     };
     Trace.prototype.Sampler.prototype = Object.create(Super, {
@@ -575,14 +578,11 @@
                     if (this.voices.hasOwnProperty(k)) {
                         totalTime += this.voices[k].time;
                     }   
-                }      
+                }
+                this.lastTimeCheck = userContext.currentTime;      
                 return (this.voiceCount) ? totalTime / this.voiceCount : 0;
             }
-        },
-        activate: {
-
-        } 
-        
+        }   
     });
 
     ///////////// //////////////
@@ -658,13 +658,9 @@
                 return this.start + this.playHeadPos;
             }
         }
-
     });
 
-
-
     //////////// //////////////
-
 
     Trace.prototype.Analyser = function(properties){
         if (!properties) {
@@ -741,7 +737,7 @@
         },
         init: {
             value: function(){
-                this.anal.fftSize = 2048;
+                this.anal.fftSize = 512;
                 this.anal.smoothingTimeConstant = 0.3;
             }
         } 

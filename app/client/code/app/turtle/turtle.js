@@ -22,6 +22,7 @@ Turtle = function(position, direction, up, material, geometry, width, collide){
 }
 
 Turtle.prototype.constructor = Turtle;
+Turtle.prototype = new THREE.Object3D();
 
 Turtle.prototype.go = function(distance){
 	var newPosition;

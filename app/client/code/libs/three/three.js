@@ -3416,7 +3416,6 @@ THREE.Object3D.prototype = {
 
 	add: function ( object ) {
 
-
 		if ( object === this ) {
 			
 			console.warn( 'THREE.Object3D.add: An object can\'t be added as a child of itself.' );
