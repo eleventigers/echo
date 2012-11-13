@@ -132,9 +132,8 @@ defaultState.onResize = function () {
 };
 defaultState.onRender = function(){
 	if (this.running){
-		var colls = detectCollision(this.scene.children, this.controls, 20);
-		this.collisions = colls[0];
-		this.optCollisions = colls[1];
+		++this.counter;
+		this.collisions = detectCollision(this.scene.children, this.controls);
 		this.controls.collUpdate(this.collisions);
 		this.controls.update(Date.now() - TIME);
 		this.stats.update();
@@ -145,10 +144,11 @@ defaultState.onRender = function(){
 		} 
 		if(this.stateManager.cursor.downRight){
 
-			collectSounds(this);
+			if(this.counter === 2) collectSounds(this);
 
 		}
 		TIME = Date.now();
+		if(this.counter == 4) this.counter = 0;
 	}	
 };
 defaultState.onPointerLockChange = function(event) {
@@ -280,6 +280,7 @@ function setupStats(container) {
 
 function collectSounds(state){
 
+
 	var pos = state.controls.getObject().position.clone();
 	var rots = state.controls.getRotation();
 	var vertices = state.controls.getObject().geometry.vertices;
@@ -289,32 +290,32 @@ function collectSounds(state){
 
 	var ray = new THREE.Ray( pos, directionVector.normalize().setY(rots[1].clone().x), 0, 1000 );
 
-	var intersects = ray.intersectObjects(state.scene.children, false);
+	var intersects = ray.intersectObjects(state.scene.children, true);
 
-	console.log(intersects);
+	if (intersects.length > 0) {
+		var first = intersects[ 0 ];
+		var distance = first.distance;
+		if (distance >= 0 && distance <= 20) {
+			if(first.object.collectable){
+				var pick = first.object.pickUp();
+				pick.collectable = false;
+				state.collected.push(pick);
+			}
+		}	
+	} 
 
 	arrow.position = pos;
 	arrow.setDirection(directionVector);
 
-	// var colls = state.optCollisions;
-
-	// if (colls.down || colls.front || colls.up || colls.left || colls.right){
-	// 	var obj = colls.front.object || colls.down.object || colls.up.object || colls.left.object || colls.right.object;
-	// 	if(obj.collectable){
-	// 		var pick = obj.pickUp();
-	// 		pick.collectable = false;
-	// 		state.collected.push(pick);
-	// 	}
-	// }	
 
 }
 
 
-function detectCollision(collidees, collider, optRad) {
+function detectCollision(collidees, collider) {
 
-	return collide(collidees, collider, optRad);
+	return collide(collidees, collider);
 
-	function collide(objects, origin, optRad){
+	function collide(objects, origin){
 		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices, falseCount;
 
 		(objects.length > 0) ? obj = objects : obj = false;
@@ -352,22 +353,14 @@ function detectCollision(collidees, collider, optRad) {
 						collisions[key] = intersects[ 0 ];				
 					} else {						
 						collisions[key] = false;
-					}
-					if (optRad){
-						if (distance >= 0 && distance <= optRad) {
-							optCollisions[key] = intersects[ 0 ];				
-						} else {						
-							optCollisions[key] = false;
-						}
-					}			
+					}		
 				} else {
 					collisions[key] = false;
-					if(optRad) optCollisions[key] = false;
 					++falseCount;
 				}		
 			}					
 		}
-		return (falseCount !== 6) ? [collisions, optCollisions] : false;	
+		return (falseCount !== 6) ? collisions : false;	
 	}
 }
 

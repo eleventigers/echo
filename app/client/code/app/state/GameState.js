@@ -58,6 +58,9 @@ GameState = function () {
 	// Collected items
 	this.collected = [];
 
+	//
+	this.counter = 0;
+
 }
 
 GameState.prototype.constructor = GameState;
