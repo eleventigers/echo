@@ -143,12 +143,12 @@ var PointerLockControls = function ( camera ) {
 		}
 	};
 
-	this.getObject = function () {
+	this.getYaw = function () {
 		return yawObject;
 	};
 
-	this.getRotation = function(){
-		return [yawObject.rotation, pitchObject.rotation];
+	this.getPitch = function(){
+		return pitchObject;
 	};
 
 	this.getOn = function() {

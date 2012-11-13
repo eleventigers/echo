@@ -376,18 +376,20 @@
                     current = 0;
                     
                 function onSamplerStop(){
-                    if(current === length) self.stop();
-                    if(current < length) playNext(current);              
+                    if(current === length) self.stop();           
                 }
 
-                this.sampler = new userInstance.Sampler({onStop: onSamplerStop});
+                function onSamplerNotify(){
+                    if(current < length) playNext(current);            
+                }
+
+                this.sampler = new userInstance.Sampler({onStop: onSamplerStop, onVoiceFadeOut: onSamplerNotify});
                 this.builder = userContext.createJavaScriptNode(this.buildRate);
                 this.builder.onaudioprocess = function(e) {self.build()};
 
                 if( Object.prototype.toString.call( seq ) === '[object Array]' ){
-
                     length = seq.length;
-                    var playNext = function (seqNr){
+                    function playNext(seqNr){
                         ++current;
                         self.buffer = seq[seqNr].sample; 
                         var buffer = (!seq[seqNr].sample) ? self.buffer : seq[seqNr].sample;
@@ -408,7 +410,7 @@
                     var buffer = (!seq.sample) ? this.buffer : seq.sample;
                     var start = (!seq.sampleStart) ?  0 : seq.sampleStart;
                     var duration = (!seq.sampleDuration) ? 0 : seq.sampleDuration;
-                    self.builder.connect(self.output);
+                    this.builder.connect(self.output);
                     this.sampler.connect(this.input);
                     this.sampler.play(buffer, start, duration);
                     // if (seq.position) this.panPos(seq.position);
@@ -428,7 +430,6 @@
               
                 if(this.parent && this.parent.turtle){
 
-
                     var angle = 0,
                         turtle = this.parent.turtle,
                         analysis = this.analyser.analysis,
@@ -439,33 +440,32 @@
                     }
 
                     if (analysis.loudness > 0){
-                        if (turtle.stack.length>0) turtle.pop();
+                       turtle.push();
+                         
                         turtle.penDown; 
 
                         if (analysis.loudness > analysis.avgLoudness){
-                            //turtle.push();
-                            cent /= -100 * Math.sin(analysis.loudness);
+                            console.log(analysis.loudness, analysis.avgLoudness)
+                            if (turtle.stack.length>0) turtle.pop();
+                            cent /= -1 * Math.cos(analysis.loudness);
                             angle = cent * analysis.loudness / 10;
                         }
 
                         turtle.pitch(angle);
                         turtle.yaw(cent);
                         //turtle.roll(cent);
-                        var width = Math.log(analysis.loudness)+cent;
+                        var width = Math.log(analysis.loudness)*Math.sin(angle);
                         (width < 0) ? width *= -1 : width = width;
                         turtle.setWidth(width);
-                        var distance = analysis.loudness*Math.atan(cent)/10;
+                        var distance = analysis.loudness*Math.sin(cent)/10;
                         (distance < 0) ? distance *= -1 : distance = distance;
                         var drop = turtle.drop(distance);
                        
-                        
                         drop.sample = this.buffer;
                         var delta = userContext.currentTime - this.sampler.lastTimeCheck;
                         drop.sampleDuration = ( delta > 0 ) ? delta : this.builder.bufferSize / this.sampleRate;
                         drop.sampleStart = this.sampler.meanTime;
-                        drop.collectable = true;
-                         
-                        //console.log(drop);
+                        drop.collectable = true;   
 
                         this.parent.add(drop);
                         this.panPos(turtle.position);
@@ -518,32 +518,39 @@
         this.voices = {};
         this.maxVoices = properties.maxVoices || this.defaults.maxVoices.value;
         this.onStop = properties.onStop || this.defaults.onStop.value;
+        this.onVoiceFadeOut = properties.onVoiceFadeOut || this.defaults.onVoiceFadeOut.value;
         this.playing = false;
 
         this.lastTimeCheck = userContext.currentTime;
+
+        this.han = this.generateHanning();
 
     };
     Trace.prototype.Sampler.prototype = Object.create(Super, {
         traceName: {value: "Sampler"},
         defaults: {
             value: {
-                maxVoices: {value: 1, automatable: false, type: INT},
-                onStop: {value: function(){}, automatable: false}
+                maxVoices: {value: 2, automatable: false, type: INT},
+                onStop: {value: function(){}, automatable: false},
+                onVoiceFadeOut: {value: function(){}, automatable: false}
             }
         },
         play: {
             enumerable: true,
             value: function(buffer, start, duration){
                 var self = this;
-                var removeVoice = function(index){
+                function removeVoice(index) {
                     if(self.voices.hasOwnProperty(index)) delete self.voices[index];
                     if(self.playing && self.voiceCount === 0) {
                         self.stop();
                     }
-                };
+                }
+                function notify(){
+                    if(self.playing) self.onVoiceFadeOut();
+                }
                 var index = this.voiceCount;
                 if(index <= this.maxVoices - 1){
-                    var voice = new userInstance.Voice({parent: this, buffer: buffer, onStop: removeVoice, index: index, start: start, duration: duration});
+                    var voice = new userInstance.Voice({parent: this, buffer: buffer, onStop: removeVoice, onFadeOut: notify, index: index, start: start, duration: duration});
                     this.voices[index] = voice;
                     voice.play();
                     this.playing = true; 
@@ -583,7 +590,18 @@
                 this.lastTimeCheck = userContext.currentTime;      
                 return (this.voiceCount) ? totalTime / this.voiceCount : 0;
             }
-        }   
+        },
+        generateHanning: {
+            value: function(factor){
+                var factor = (!factor) ? 1 : factor;
+                var curveLength = userContext.sampleRate;
+                var curve = new Float32Array(curveLength);
+                for (var i = 0; i < curveLength; ++i){
+                    curve[i] =  0.5 * ( 1 - Math.cos( (2*Math.PI*i) / (curveLength+1 - 1) ) ); 
+                }
+                return curve;   
+            }
+        }
     });
 
     ///////////// //////////////
@@ -609,10 +627,14 @@
         this.start = properties.start || this.defaults.start.value;
         this.duration = properties.duration || this.defaults.duration.value;
         this.onStop = properties.onStop || this.defaults.onStop.value;
+        this.onFadeOut = properties.onFadeOut || this.defaults.onFadeOut.value;
         this.index = properties.index || this.defaults.index.value;
+        this.fade = properties.fade || this.defaults.fade.value;
 
         this.playHeadPos = 0;
         this.playing = false;
+        this.fadingIn = false;
+        this.fadingOut = false;
 
     };
     Trace.prototype.Voice.prototype = Object.create(Super, {
@@ -624,16 +646,25 @@
                 onStop: {value: function(){}, automatable: false},
                 index: {value: 0, automatable: false},
                 start: {value: 0, automatable: false},
-                duration : {value: 0, automatable: false}
+                duration: {value: 0, automatable: false},
+                fade: {value: 0.1, automatable: true, type: FLOAT},
+                onFadeOut: {value: function(){}, automatable: false}
             }
         },
         play: {
-            value: function () {
-                this.duration = (this.duration === 0) ? this.source.buffer.duration-this.start : this.duration;
+            value: function () {    
+                this.start = (this.start - this.fade < 0) ? 0 : this.start - this.fade;
+                this.duration = (this.duration+(this.fade*2) > this.source.buffer.duration || this.duration === 0) ? this.source.buffer.duration : this.duration+(this.fade*2);
                 this.source.start = userContext.currentTime;
                 this.playHead.connect(this.output);
+                this.output.gain.setValueAtTime(0, userContext.currentTime);
+                this.output.gain.linearRampToValueAtTime(1, userContext.currentTime+this.fade);
+                this.output.gain.setValueAtTime(1, userContext.currentTime+this.duration-this.fade);
+                this.output.gain.linearRampToValueAtTime(0, userContext.currentTime+this.duration);
+                //this.output.gain.setValueCurveAtTime(this.parent.han, userContext.currentTime, this.duration);
                 this.source.noteGrainOn(0, this.start, this.duration); 
                 this.playing = true;
+
             }
         },
         stop: {
@@ -648,6 +679,11 @@
             value: function() {
                 if (this.playing) {
                     this.playHeadPos = userContext.currentTime - this.source.start;
+
+                }
+                if (this.playHeadPos >= this.duration-this.fade && this.playing && !this.fadingOut){
+                    this.onFadeOut();
+                    this.fadingOut = true;
                 }
                 if (this.playHeadPos >= this.duration && this.playing){
                     this.stop();
@@ -656,7 +692,7 @@
         },
         time: {
             get: function() {
-                return this.start + this.playHeadPos;
+                return this.start + this.fade + this.playHeadPos;
             }
         }
     });
@@ -738,7 +774,7 @@
         },
         init: {
             value: function(){
-                this.anal.fftSize = 512;
+                this.anal.fftSize = 1024;
                 this.anal.smoothingTimeConstant = 0.3;
             }
         } 

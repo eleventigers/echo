@@ -7,8 +7,7 @@ Struct.Tree.prototype.removeChild = function(child){
 	if(child && this.children.length > 0){	
 		if(_.contains(this.children, child)){
 			this.remove(child);
-			if(this.children.length === 1){ // CAUTION! This assumes that the last child is an Audio.Org object so we can delete the whole thing :?
-				
+			if(this.children.length === 2){ // CAUTION! This assumes that the last children are an Audio.Org and Turtle objects so we can delete the whole thing :?		
 				var self = this;
 				var id = window.setInterval(function() {window.clearInterval(id); self.removeSelf(); }, 2000);
 			}

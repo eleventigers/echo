@@ -89,13 +89,7 @@ defaultState.onMouseDown = function(event, x, y){
 		if(event.button === 0){
 			if(this.collected.length > 0){
 
-				var origin = this.controls.getObject().position.clone().addSelf(new THREE.Vector3(0,0,this.controls.getObject().boundRadius+10));
-				var vertices = this.controls.getObject().geometry.vertices;
-				var localVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
-				var globalVertex = this.controls.getObject().matrix.multiplyVector3(localVertex);
-				var direction = globalVertex.subSelf(origin).normalize();
-				
-
+				var ray = lookAndShoot(this.controls);
 				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
 				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
 				var normalizationMatrix = new THREE.Matrix4();
@@ -103,7 +97,7 @@ defaultState.onMouseDown = function(event, x, y){
 				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 				turtleGeometry.applyMatrix(normalizationMatrix);
 				turtleGeometry.computeBoundingSphere();	
-				var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
+				var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
 				var tree = new Struct.Tree();
 				var sound = new this.audio.Sound3D();
 
@@ -114,6 +108,7 @@ defaultState.onMouseDown = function(event, x, y){
 
 				this.scene.add(tree);
 				tree.sound.play(this.collected);
+				console.log(this.collected);
 				this.collected = [];	
 			}		
 			
@@ -143,12 +138,10 @@ defaultState.onRender = function(){
 
 		} 
 		if(this.stateManager.cursor.downRight){
-
-			if(this.counter === 2) collectSounds(this);
-
+			if(this.counter === 1) collectDrops(this);
 		}
 		TIME = Date.now();
-		if(this.counter == 4) this.counter = 0;
+		if(this.counter == 3) this.counter = 0;
 	}	
 };
 defaultState.onPointerLockChange = function(event) {
@@ -178,19 +171,18 @@ defaultState.onActivation = function() {
 	this.camera = setupCamera();
 	this.scene = setupScene();
 	this.controls = setupControls(this.camera);
-	this.scene.add(this.controls.getObject());
+	this.scene.add(this.controls.getYaw());
 	this.audio = setupAudio();
 	this.stats = setupStats(container);
 	this.scene.add(arrow);
 
 	if (this.audio){
 		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
-		this.audio.buffers.loadFreesound(["4456", "21994"], false, function(buffers){
+		this.audio.buffers.loadFreesound(["4456", "13158"], false, function(buffers){
 
 			var test = new Struct.Tree();
 			var testsound = new self.audio.Sound3D();
 			test.add(testsound);
-
 			
 			var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
 			var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
@@ -207,7 +199,7 @@ defaultState.onActivation = function() {
 			test.sound = testsound;
 			test.turtle = turtle;
 			
-			test.sound.play({sample:self.audio.buffers.get("21994"), sampleStart:0, sampleDuration:0});
+			test.sound.play({sample:self.audio.buffers.get("13158"), sampleStart:0, sampleDuration:0});
 			
 		});
 	}
@@ -278,24 +270,15 @@ function setupStats(container) {
 	return stats;
 }
 
-function collectSounds(state){
+function collectDrops(state){
 
-
-	var pos = state.controls.getObject().position.clone();
-	var rots = state.controls.getRotation();
-	var vertices = state.controls.getObject().geometry.vertices;
-	var localVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
-	var globalVertex = state.controls.getObject().matrix.multiplyVector3(localVertex);
-	var directionVector = globalVertex.subSelf( state.controls.getObject().position );
-
-	var ray = new THREE.Ray( pos, directionVector.normalize().setY(rots[1].clone().x), 0, 1000 );
-
+	var ray = lookAndShoot(state.controls);
 	var intersects = ray.intersectObjects(state.scene.children, true);
 
 	if (intersects.length > 0) {
 		var first = intersects[ 0 ];
 		var distance = first.distance;
-		if (distance >= 0 && distance <= 20) {
+		if (distance >= 0 && distance <= state.controls.getYaw().boundRadius*4) {
 			if(first.object.collectable){
 				var pick = first.object.pickUp();
 				pick.collectable = false;
@@ -304,9 +287,26 @@ function collectSounds(state){
 		}	
 	} 
 
-	arrow.position = pos;
-	arrow.setDirection(directionVector);
+	arrow.position = ray.origin;
+	arrow.setDirection(ray.direction);
 
+
+}
+
+function lookAndShoot (controls, far){
+
+	if (!controls) return;
+
+	var bound = controls.getYaw().boundRadius;
+	var pos = controls.getYaw().position.clone();
+	var pitch = controls.getPitch().rotation.clone();
+	var far = (!far) ? 1000 : far;
+	var vertices = controls.getYaw().geometry.vertices;
+	var frontVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
+	var globalVertex = controls.getYaw().matrix.multiplyVector3(frontVertex);
+	var directionVector = globalVertex.subSelf( pos );
+
+	return new THREE.Ray( pos, directionVector.normalize().setY(pitch.x), 0, far );
 
 }
 
@@ -319,11 +319,11 @@ function detectCollision(collidees, collider) {
 		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices, falseCount;
 
 		(objects.length > 0) ? obj = objects : obj = false;
-		(origin.hasOwnProperty("getObject")) ? coll = origin : coll = false;
+		(origin.hasOwnProperty("getYaw")) ? coll = origin : coll = false;
 
 		if (obj && coll){
-			vertices = coll.getObject().geometry.vertices;
-			rad = coll.getObject().boundRadius+1;
+			vertices = coll.getYaw().geometry.vertices;
+			rad = coll.getYaw().boundRadius+1;
 			var directions = {
 				"up": [4,1],
 				"down": [6,2],
@@ -343,9 +343,9 @@ function detectCollision(collidees, collider) {
 			var optCollisions = Object.create(collisions);
 			for (key in directions){
 				(directions[key].length > 1) ? localVertex =  vertices[directions[key][0]].clone().addSelf(vertices[directions[key][1]].clone()) : localVertex = vertices[directions[key][0]].clone();	
-				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
-				directionVector = globalVertex.subSelf( coll.getObject().position );
-				ray = new THREE.Ray( coll.getObject().position.clone(), directionVector.clone().normalize(), 0, 1000 );
+				globalVertex = coll.getYaw().matrix.multiplyVector3(localVertex);
+				directionVector = globalVertex.subSelf( coll.getYaw().position );
+				ray = new THREE.Ray( coll.getYaw().position.clone(), directionVector.clone().normalize(), 0, 1000 );
 				intersects = ray.intersectObjects(obj, true);
 				if (intersects.length > 0) {
 					distance = intersects[ 0 ].distance;
