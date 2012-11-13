@@ -14,6 +14,8 @@ var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
 // Global clock
 var TIME = Date.now();
 
+var arrow = new THREE.ArrowHelper(new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, 0 ));
+
 // Pointer lock
 var element = document.body;
 var blocker = document.getElementById( 'blocker' );
@@ -92,7 +94,7 @@ defaultState.onMouseDown = function(event, x, y){
 				var localVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
 				var globalVertex = this.controls.getObject().matrix.multiplyVector3(localVertex);
 				var direction = globalVertex.subSelf(origin).normalize();
-				console.log(origin, direction);
+				
 
 				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
 				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
@@ -101,36 +103,21 @@ defaultState.onMouseDown = function(event, x, y){
 				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 				turtleGeometry.applyMatrix(normalizationMatrix);
 				turtleGeometry.computeBoundingSphere();	
-				var bum = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
+				var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
 				var tree = new Struct.Tree();
 				var sound = new this.audio.Sound3D();
 
 				tree.add(sound);
-				tree.add(bum);
+				tree.add(turtle);
 				tree.sound = sound;
-				tree.turtle = bum;
+				tree.turtle = turtle;
 
 				this.scene.add(tree);
 				tree.sound.play(this.collected);
-				console.log(this.scene);
 				this.collected = [];	
 			}		
 			
-		}
-
-		if(event.button === 2){
-			var colls = detectCollision(this.scene.children, this.controls);
-				if (colls.down || colls.front){
-					var obj = colls.front.object || colls.down.object;
-					console.log(obj);
-					if(obj.sample){
-						//obj.parent.sound.play(obj);
-						var pick = obj.pickUp();
-						this.collected.push(pick);
-						console.log(this.collected);
-					}
-				}	
-		}		
+		}	
 		
 	}
 };
@@ -145,12 +132,22 @@ defaultState.onResize = function () {
 };
 defaultState.onRender = function(){
 	if (this.running){
-		this.controls.collUpdate(detectCollision(this.scene.children, this.controls));
+		var colls = detectCollision(this.scene.children, this.controls, 20);
+		this.collisions = colls[0];
+		this.optCollisions = colls[1];
+		this.controls.collUpdate(this.collisions);
 		this.controls.update(Date.now() - TIME);
 		this.stats.update();
 		this.audio.listener.update(this.camera);
 		this.renderer.render( this.scene, this.camera );
+		if(this.stateManager.cursor.downLeft){
 
+		} 
+		if(this.stateManager.cursor.downRight){
+
+			collectSounds(this);
+
+		}
 		TIME = Date.now();
 	}	
 };
@@ -184,10 +181,11 @@ defaultState.onActivation = function() {
 	this.scene.add(this.controls.getObject());
 	this.audio = setupAudio();
 	this.stats = setupStats(container);
+	this.scene.add(arrow);
 
 	if (this.audio){
 		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
-		this.audio.buffers.loadFreesound(["4456", "21964"], false, function(buffers){
+		this.audio.buffers.loadFreesound(["4456", "21994"], false, function(buffers){
 
 			var test = new Struct.Tree();
 			var testsound = new self.audio.Sound3D();
@@ -209,7 +207,7 @@ defaultState.onActivation = function() {
 			test.sound = testsound;
 			test.turtle = turtle;
 			
-			test.sound.play({sample:self.audio.buffers.get("21964"), sampleStart:0, sampleDuration:0});
+			test.sound.play({sample:self.audio.buffers.get("21994"), sampleStart:0, sampleDuration:0});
 			
 		});
 	}
@@ -280,12 +278,43 @@ function setupStats(container) {
 	return stats;
 }
 
+function collectSounds(state){
 
-function detectCollision(collidees, collider) {
+	var pos = state.controls.getObject().position.clone();
+	var rots = state.controls.getRotation();
+	var vertices = state.controls.getObject().geometry.vertices;
+	var localVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
+	var globalVertex = state.controls.getObject().matrix.multiplyVector3(localVertex);
+	var directionVector = globalVertex.subSelf( state.controls.getObject().position );
 
-	return collide(collidees, collider);
+	var ray = new THREE.Ray( pos, directionVector.normalize().setY(rots[1].clone().x), 0, 1000 );
 
-	function collide(objects, origin){
+	var intersects = ray.intersectObjects(state.scene.children, false);
+
+	console.log(intersects);
+
+	arrow.position = pos;
+	arrow.setDirection(directionVector);
+
+	// var colls = state.optCollisions;
+
+	// if (colls.down || colls.front || colls.up || colls.left || colls.right){
+	// 	var obj = colls.front.object || colls.down.object || colls.up.object || colls.left.object || colls.right.object;
+	// 	if(obj.collectable){
+	// 		var pick = obj.pickUp();
+	// 		pick.collectable = false;
+	// 		state.collected.push(pick);
+	// 	}
+	// }	
+
+}
+
+
+function detectCollision(collidees, collider, optRad) {
+
+	return collide(collidees, collider, optRad);
+
+	function collide(objects, origin, optRad){
 		var obj, coll, rad, localVertex, globalVertex, directionVector, intersects, distance, vertices, falseCount;
 
 		(objects.length > 0) ? obj = objects : obj = false;
@@ -310,6 +339,7 @@ function detectCollision(collidees, collider) {
 				"left": {},
 				"right": {},
 			};
+			var optCollisions = Object.create(collisions);
 			for (key in directions){
 				(directions[key].length > 1) ? localVertex =  vertices[directions[key][0]].clone().addSelf(vertices[directions[key][1]].clone()) : localVertex = vertices[directions[key][0]].clone();	
 				globalVertex = coll.getObject().matrix.multiplyVector3(localVertex);
@@ -323,13 +353,21 @@ function detectCollision(collidees, collider) {
 					} else {						
 						collisions[key] = false;
 					}
+					if (optRad){
+						if (distance >= 0 && distance <= optRad) {
+							optCollisions[key] = intersects[ 0 ];				
+						} else {						
+							optCollisions[key] = false;
+						}
+					}			
 				} else {
 					collisions[key] = false;
+					if(optRad) optCollisions[key] = false;
 					++falseCount;
 				}		
 			}					
 		}
-		return (falseCount !== 6) ? collisions : false;	
+		return (falseCount !== 6) ? [collisions, optCollisions] : false;	
 	}
 }
 

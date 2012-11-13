@@ -147,6 +147,10 @@ var PointerLockControls = function ( camera ) {
 		return yawObject;
 	};
 
+	this.getRotation = function(){
+		return [yawObject.rotation, pitchObject.rotation];
+	};
+
 	this.getOn = function() {
 		return onObject;
 	}
@@ -227,6 +231,7 @@ var PointerLockControls = function ( camera ) {
 		yawObject.translateX( velocity.x );
 		yawObject.translateY( velocity.y ); 
 		yawObject.translateZ( velocity.z );
+
 
 	};
 

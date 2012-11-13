@@ -15,7 +15,8 @@ StateManager = function (init_state, canvas_object) {
 		'prevMoveY' : 0,// Previous y movement
 		'moveX' : 0, 	// Current x movement
 		'moveY' : 0,	// Current y movement	
-		'down' : false	// Is the mouse button pressed
+		'downLeft' : false, // Is mouse left button pressed
+		'downRight' : false	 // Is mouse right button pressed
 	}
 
 	// 'Self' for reference in events
@@ -72,19 +73,24 @@ StateManager = function (init_state, canvas_object) {
 	});
 
 	// Mouse clicked (down)
-	canvas_object.addEventListener("mousedown", function() {
+	canvas_object.addEventListener("mousedown", function (event) {
 		if (typeof self.activeAppState.onMouseDown === 'function')
 			self.activeAppState.onMouseDown(event, self.cursor.x, self.cursor.y);
+		if(event.button === 0) 
+			self.cursor.downLeft = true;
+		if(event.button === 2) 
+			self.cursor.downRight = true;
 
-		self.cursor.down = true;
 	});
 
 	// Mouse released (up)
-	canvas_object.addEventListener("mouseup", function() {
+	canvas_object.addEventListener("mouseup", function (event) {
 		if (typeof self.activeAppState.onMouseUp === 'function')
 			self.activeAppState.onMouseUp(event, self.cursor.x, self.cursor.y);
-
-		self.cursor.down = false;
+		if(event.button === 0) 
+			self.cursor.downLeft = false;
+		if(event.button === 2)
+			self.cursor.downRight = false;
 	});
 
 	// Window resized

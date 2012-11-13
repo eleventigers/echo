@@ -463,6 +463,7 @@
                         var delta = userContext.currentTime - this.sampler.lastTimeCheck;
                         drop.sampleDuration = ( delta > 0 ) ? delta : this.builder.bufferSize / this.sampleRate;
                         drop.sampleStart = this.sampler.meanTime;
+                        drop.collectable = true;
                          
                         //console.log(drop);
 
