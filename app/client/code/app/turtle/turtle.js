@@ -65,11 +65,11 @@ Turtle.prototype.shoot = function(){
 		var intersects = ray.intersectObjects(this.collidable, true);
 	
 		if (intersects.length > 0){
-			if (intersects[0].distance > 0.0001 && intersects[0].distance < 10){
+			if (intersects[0].distance > 0 && intersects[0].distance < 20){
 				
 				var prevDir = this.direction.clone();
 				this.direction.crossSelf(intersects[0].object.position.clone().normalize());
-				(this.direction.isZero()) ? this.direction.subSelf(new THREE.Vector3(1,1,1)) : this.direction;
+				(this.direction.isZero()) ? this.direction.copy(prevDir).negate() : this.direction;
 				if (intersects[0].object.parent) {
 					//if (intersects[0].object.parent.removeChild) intersects[0].object.parent.removeChild(intersects[0].object);
 				}

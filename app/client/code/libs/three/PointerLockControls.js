@@ -9,7 +9,7 @@ var PointerLockControls = function ( camera ) {
 	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
 	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
 
-	yawObject.position.y = 1;
+	yawObject.position.y = 100;
 	yawObject.add( pitchObject );
 
 	var moveForward = false;
@@ -190,12 +190,11 @@ var PointerLockControls = function ( camera ) {
 				pitchObject.rotation.x += Math.random()*0.1;
 			}
 			if (velocity.y > 0) velocity.y = 0;
-			velocity.y -= 0.25 * delta; 
 		}
 
 		//sprint initially increses accelaration or decreases it when stopping
 		if (moveForward) velocity.z -= 0.05 * delta + stepsZ * 0.001;		
-		if ( moveBackward) velocity.z += 0.05 * delta + stepsZ * 0.001;
+		if (moveBackward) velocity.z += 0.05 * delta + stepsZ * 0.001;
 
 		if ( moveLeft ) velocity.x -= 0.05 * delta + stepsX * 0.001;
 		if ( moveRight ) velocity.x += 0.05 * delta + stepsX * 0.001;
@@ -212,7 +211,7 @@ var PointerLockControls = function ( camera ) {
 			if (stepsX > 0) --stepsX;
 		} 	
 
-		if (frontObject && front.distanceToSquared(yawObject.position) < yawObject.boundRadius) {
+		if (moveForward && frontObject && front.distanceToSquared(yawObject.position) < yawObject.boundRadius) {
 			(moveForward) ? velocity.z = 0 : velocity.z = 0.1*delta;
 		}
 
@@ -220,7 +219,7 @@ var PointerLockControls = function ( camera ) {
 			(moveBackward) ? velocity.z = 0 : velocity.z = -0.1*delta;
 		}
 
-		if (leftObject && left.distanceToSquared(yawObject.position) < yawObject.boundRadius ) {
+		if (moveLeft && leftObject && left.distanceToSquared(yawObject.position) < yawObject.boundRadius ) {
 			(moveLeft) ? velocity.x = 0 : velocity.x = 0.1*delta;
 			
 		}

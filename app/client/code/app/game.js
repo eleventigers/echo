@@ -99,7 +99,7 @@ defaultState.onMouseDown = function(event, x, y){
 				turtleGeometry.computeBoundingSphere();	
 				var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
 				var tree = new Struct.Tree();
-				var sound = new this.audio.Sound3D();
+				var sound = new this.audio.Sound3D({building:true, loop:true});
 
 				tree.add(sound);
 				tree.add(turtle);
@@ -178,10 +178,10 @@ defaultState.onActivation = function() {
 
 	if (this.audio){
 		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
-		this.audio.buffers.loadFreesound(["4456", "13158"], false, function(buffers){
+		this.audio.buffers.loadFreesound(["4456", "15394"], false, function(buffers){
 
 			var test = new Struct.Tree();
-			var testsound = new self.audio.Sound3D();
+			var testsound = new self.audio.Sound3D({building:true, loop:true});
 			test.add(testsound);
 			
 			var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
@@ -199,7 +199,7 @@ defaultState.onActivation = function() {
 			test.sound = testsound;
 			test.turtle = turtle;
 			
-			test.sound.play({sample:self.audio.buffers.get("13158"), sampleStart:0, sampleDuration:0});
+			test.sound.play({sample:self.audio.buffers.get("15394"), sampleStart:0, sampleDuration:0});
 			
 		});
 	}
@@ -241,7 +241,7 @@ function setupScene(){
 
 	var geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
 	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
-	var material = new THREE.MeshPhongMaterial( { color: 0xffffff } );
+	var material = new THREE.MeshPhongMaterial( { color: 0xffffff, opacity: 0.2 } );
 	var mesh = new THREE.Mesh( geometry, material );
 	mesh.position.y = 0;
 	scene.add(mesh);
@@ -278,7 +278,7 @@ function collectDrops(state){
 	if (intersects.length > 0) {
 		var first = intersects[ 0 ];
 		var distance = first.distance;
-		if (distance >= 0 && distance <= state.controls.getYaw().boundRadius*4) {
+		if (distance >= 0 && distance <= 200) {
 			if(first.object.collectable){
 				var pick = first.object.pickUp();
 				pick.collectable = false;
@@ -299,10 +299,13 @@ function lookAndShoot (controls, far){
 
 	var bound = controls.getYaw().boundRadius;
 	var pos = controls.getYaw().position.clone();
+	//var posIn = pos.clone().subSelf(new THREE.Vector3(0,0,-20));
+
 	var pitch = controls.getPitch().rotation.clone();
 	var far = (!far) ? 1000 : far;
 	var vertices = controls.getYaw().geometry.vertices;
-	var frontVertex =  vertices[3].clone().addSelf(vertices[4].clone());	
+	var frontVertex =  vertices[3].clone().addSelf(vertices[4].clone());
+	
 	var globalVertex = controls.getYaw().matrix.multiplyVector3(frontVertex);
 	var directionVector = globalVertex.subSelf( pos );
 

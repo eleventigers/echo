@@ -325,27 +325,38 @@
 
         THREE.Object3D.call(this);
 
+        var self = this;
+
+        this.sampleRate = userContext.sampleRate;
+        this.oldPosition = new THREE.Vector3();
+        this.posDelta = new THREE.Vector3();
+        this.buffer = properties.buffer || this.defaults.buffer.value;
+        this.buildRate = properties.buildRate || this.defaults.buildRate.value;
+        this.building = properties.building || this.defaults.building.value;
+        this.loop =  properties.loop || this.defaults.loop.value;
+
         this.input = userContext.createGainNode();
         this.panner = userContext.createPanner();
         this.output = userContext.createGainNode();
         this.analyser = new userInstance.Analyser();
+        this.builder = userContext.createJavaScriptNode(this.buildRate);
+        this.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
 
         this.input.connect(this.panner);
         this.input.connect(this.analyser.input);
+        this.input.connect(this.builder);
         this.panner.connect(this.output);
         this.output.connect(userContext.destination); // destination might be a mixer later
+        
+       
+        this.capturedBuffers = {
+            "0" : [],
+            "1" : [],
+            "2" : [],
+            "4" : []        
+        };
 
         this.init();
-        
-        this.sampleRate = userContext.sampleRate;
-
-        this.oldPosition = new THREE.Vector3();
-        this.posDelta = new THREE.Vector3();
-
-        this.buffer = properties.buffer || this.defaults.buffer.value;
-        this.buildRate = properties.buildRate || this.defaults.buildRate.value;
-
-        this.building = false;
 
     };
 
@@ -354,7 +365,9 @@
         defaults: {
             value: {
                 buffer: {value: null, automatable: false},
-                buildRate: {value: 1024, automatable: false, type: INT}
+                buildRate: {value: 1024, automatable: false, type: INT},
+                building: {value: false, automatable:false, type:BOOLEAN},
+                loop: {value: false, automatable:false, type:BOOLEAN}
             }
         }, 
         panPos: {  
@@ -372,49 +385,49 @@
 
                 var self = this;
                     seq = value,
-                    length = 0,
+                    length = (Object.prototype.toString.call( seq ) === '[object Array]') ? seq.length : 1; 
                     current = 0;
                     
                 function onSamplerStop(){
-                    if(current === length) self.stop();           
+                    if(current === length && self.loop) {
+                        self.building = false; 
+                        self.play(self.drops);          
+                    }   
+                    if(current === length && !self.loop) self.stop();                   
                 }
 
                 function onSamplerNotify(){
-                    if(current < length) playNext(current);            
+                    if(current < length) playNext(current);           
+                }
+
+                function playNext(seqNr){
+                        ++current;
+                        self.buffer = seq[seqNr].sample; 
+                        var buffer =  seq[seqNr].sample;
+                        var start = seq[seqNr].sampleStart;
+                        var duration = seq[seqNr].sampleDuration;
+                        self.builder.connect(self.output);
+                        self.sampler.connect(self.input);
+                        if(buffer) self.sampler.play(buffer, start, duration);            
                 }
 
                 this.sampler = new userInstance.Sampler({onStop: onSamplerStop, onVoiceFadeOut: onSamplerNotify});
-                this.builder = userContext.createJavaScriptNode(this.buildRate);
-                this.builder.onaudioprocess = function(e) {self.build()};
+               
 
-                if( Object.prototype.toString.call( seq ) === '[object Array]' ){
-                    length = seq.length;
-                    function playNext(seqNr){
-                        ++current;
-                        self.buffer = seq[seqNr].sample; 
-                        var buffer = (!seq[seqNr].sample) ? self.buffer : seq[seqNr].sample;
-                        var start = (!seq[seqNr].sampleStart) ?  0 : seq[seqNr].sampleStart;
-                        var duration = (!seq[seqNr].sampleDuration) ? 0 : seq[seqNr].sampleDuration;
-                        self.builder.connect(self.output);
-                        self.sampler.connect(self.input);
-                        self.sampler.play(buffer, start, duration); 
-                        // if (seq[seqNr].position) self.panPos(seq[seqNr].position);
-                        // if (self.parent && self.parent.turtle && seq[seqNr].position) self.parent.turtle.position.copy(seq[seqNr].position);    
-                    }
+                if( length > 1){
+                    
                     playNext(current);
 
                 } else {
-                    length = 1;
                     ++current;
                     self.buffer = seq.sample; 
-                    var buffer = (!seq.sample) ? this.buffer : seq.sample;
-                    var start = (!seq.sampleStart) ?  0 : seq.sampleStart;
-                    var duration = (!seq.sampleDuration) ? 0 : seq.sampleDuration;
+                    var buffer =  seq.sample;
+                    var start = seq.sampleStart;
+                    var duration = seq.sampleDuration;
                     this.builder.connect(self.output);
                     this.sampler.connect(this.input);
-                    this.sampler.play(buffer, start, duration);
-                    // if (seq.position) this.panPos(seq.position);
-                    // if (this.parent && this.parent.turtle && seq.position) this.parent.turtle.position.copy(seq.position);
+                    if(buffer) this.sampler.play(buffer, start, duration);    
+                   
                 }
             }
         },
@@ -426,8 +439,14 @@
             }
         },
         build: {
-            value: function(){
-              
+            value: function(e){
+
+                var channels = e.inputBuffer.numberOfChannels;
+                for (var i = 0; i < channels; ++i){
+                    this.capturedBuffers[i].push(e.inputBuffer.getChannelData(i));
+                }
+
+
                 if(this.parent && this.parent.turtle){
 
                     var angle = 0,
@@ -439,26 +458,27 @@
                         cent = 0;
                     }
 
-                    if (analysis.loudness > 0){
-                       turtle.push();
-                         
+                    if (analysis.loudness > 10){
+                        console.log(this.capturedBuffers[1]);
+                             
+                        turtle.push();
                         turtle.penDown; 
 
                         if (analysis.loudness > analysis.avgLoudness){
-                            console.log(analysis.loudness, analysis.avgLoudness)
                             if (turtle.stack.length>0) turtle.pop();
-                            cent /= -1 * Math.cos(analysis.loudness);
+                            
+                            cent /= -100 * Math.cos(Math.PI*analysis.loudness);
                             angle = cent * analysis.loudness / 10;
                         }
 
                         turtle.pitch(angle);
                         turtle.yaw(cent);
                         //turtle.roll(cent);
-                        var width = Math.log(analysis.loudness)*Math.sin(angle);
-                        (width < 0) ? width *= -1 : width = width;
+                        var width = Math.log(analysis.loudness)*Math.atan(cent);
+                        (width < 0) ? width *= -Math.PI : width = width;
                         turtle.setWidth(width);
-                        var distance = analysis.loudness*Math.sin(cent)/10;
-                        (distance < 0) ? distance *= -1 : distance = distance;
+                        var distance = analysis.loudness*Math.cos(cent)/Math.PI/5;
+                        (distance < 0) ? distance *= -Math.PI : distance = distance;
                         var drop = turtle.drop(distance);
                        
                         drop.sample = this.buffer;
@@ -473,6 +493,17 @@
                     }
 
                 }            
+            }
+        },
+        drops : {
+            get: function(){
+                var dropped = [];
+                var i;
+                var children = this.parent.children;
+                for (i = 0; i < children.length; ++i){
+                    if (children[i].collectable) dropped.push(children[i]);
+                }
+                return dropped;
             }
         },    
         init: {
@@ -515,7 +546,7 @@
 
         this.input.connect(this.output);
 
-        this.voices = {};
+        this.voices = [];
         this.maxVoices = properties.maxVoices || this.defaults.maxVoices.value;
         this.onStop = properties.onStop || this.defaults.onStop.value;
         this.onVoiceFadeOut = properties.onVoiceFadeOut || this.defaults.onVoiceFadeOut.value;
@@ -525,70 +556,63 @@
 
         this.han = this.generateHanning();
 
+        this.voiceC = 0;
+
+        this.initVoices();
+
     };
     Trace.prototype.Sampler.prototype = Object.create(Super, {
         traceName: {value: "Sampler"},
         defaults: {
             value: {
-                maxVoices: {value: 2, automatable: false, type: INT},
+                maxVoices: {value: 4, automatable: false, type: INT},
                 onStop: {value: function(){}, automatable: false},
                 onVoiceFadeOut: {value: function(){}, automatable: false}
             }
         },
         play: {
             enumerable: true,
-            value: function(buffer, start, duration){
-                var self = this;
-                function removeVoice(index) {
-                    if(self.voices.hasOwnProperty(index)) delete self.voices[index];
-                    if(self.playing && self.voiceCount === 0) {
-                        self.stop();
-                    }
-                }
-                function notify(){
-                    if(self.playing) self.onVoiceFadeOut();
-                }
-                var index = this.voiceCount;
-                if(index <= this.maxVoices - 1){
-                    var voice = new userInstance.Voice({parent: this, buffer: buffer, onStop: removeVoice, onFadeOut: notify, index: index, start: start, duration: duration});
-                    this.voices[index] = voice;
-                    voice.play();
+            value: function(buffer, start, duration){      
+                var idle = this.idleVoices;
+                //console.log(idle);
+                if(idle) {   
+                    this.voices[idle[0]].play(buffer, start, duration);
+                    this.voiceC += 1;
                     this.playing = true; 
                 } else {
-                    console.log("trace.js: "+this.traceName+" can only play " + this.maxVoices + " buffer at a time");
+                    console.log("full")
+                }  
+            }
+        },
+        idleVoices: {
+            get:function(){
+                var i, notPlaying = [];
+                for(i = 0; i < this.voices.length; ++i){
+                    if(!this.voices[i].playing) {
+                        notPlaying.push(i);
+                    }
                 }
+                return (notPlaying.length > 0) ? notPlaying : 0; 
             }
         },
         stop: {
             value: function(){
-                if (this.voiceCount > 0) {
-                    for (k in this.voices){
-                        if (this.voices.hasOwnProperty(k)) this.voices[k].stop(); 
-                    }
-                }
                 this.playing = false;
                 this.onStop();        
-            }
-        },
-        voiceCount: {
-            get: function(){
-                var voiceCount = 0;
-                for (k in this.voices){
-                    if (this.voices.hasOwnProperty(k)) ++voiceCount; 
-                }
-                return voiceCount;
             }
         },
         meanTime: {
             get: function(){
                 var totalTime = 0;
-                for (k in this.voices){
-                    if (this.voices.hasOwnProperty(k)) {
-                        totalTime += this.voices[k].time;
-                    }   
+                var active = 1;
+                for (var i = 0; i < this.voices.length; ++i){
+                    if(this.voices[i].playing) {
+                        totalTime += this.voices[i].time;
+                        ++active
+                    }        
                 }
                 this.lastTimeCheck = userContext.currentTime;      
-                return (this.voiceCount) ? totalTime / this.voiceCount : 0;
+                return totalTime / active;
             }
         },
         generateHanning: {
@@ -600,6 +624,28 @@
                     curve[i] =  0.5 * ( 1 - Math.cos( (2*Math.PI*i) / (curveLength+1 - 1) ) ); 
                 }
                 return curve;   
+            }
+        },
+        initVoices: {
+            value: function(){
+                var i;
+                var self = this;
+                for (i = 0; i < this.maxVoices; ++i){
+                     this.voices.push(new userInstance.Voice({
+                        parent: this, 
+                        onStop: function(){ 
+                            self.voiceC -= 1;  
+                            if(self.playing && self.voiceC === 0) {
+                                self.stop();  
+                            }   
+                        }, 
+                        onFadeOut: function(){
+                            if(self.playing) {
+                                self.onVoiceFadeOut();
+                            }
+                        }
+                    }));
+                }
             }
         }
     });
@@ -613,28 +659,23 @@
 
         var self = this;
 
-        this.source = userContext.createBufferSource(mixToMono = false);
+        
         this.output = userContext.createGainNode();
-        this.playHead = userContext.createJavaScriptNode(256, 1, 1);
-        this.playHead.onaudioprocess = function(e) {self.follow()};
+        this.playHead = userContext.createJavaScriptNode(256, 0, 1);
+        this.playHead.onaudioprocess = function(e) {self.follow(e)};
 
         this.parent = properties.parent || this.defaults.parent.value;
-
-        this.source.connect(this.output);
-        this.connect(this.parent.input);
-
-        this.source.buffer = properties.buffer || this.defaults.buffer.value;
-        this.start = properties.start || this.defaults.start.value;
-        this.duration = properties.duration || this.defaults.duration.value;
         this.onStop = properties.onStop || this.defaults.onStop.value;
         this.onFadeOut = properties.onFadeOut || this.defaults.onFadeOut.value;
-        this.index = properties.index || this.defaults.index.value;
         this.fade = properties.fade || this.defaults.fade.value;
 
         this.playHeadPos = 0;
         this.playing = false;
         this.fadingIn = false;
         this.fadingOut = false;
+        this.timeJitter = 0;
+
+        this.connect(this.parent.input);
 
     };
     Trace.prototype.Voice.prototype = Object.create(Super, {
@@ -642,57 +683,60 @@
         defaults: {
             value: {
                 parent: {value: null, automatable: false},
-                buffer: {value: null, automatable: false},
                 onStop: {value: function(){}, automatable: false},
-                index: {value: 0, automatable: false},
-                start: {value: 0, automatable: false},
-                duration: {value: 0, automatable: false},
-                fade: {value: 0.1, automatable: true, type: FLOAT},
+                fade: {value: 0.01, automatable: true, type: FLOAT},
                 onFadeOut: {value: function(){}, automatable: false}
             }
         },
         play: {
-            value: function () {    
-                this.start = (this.start - this.fade < 0) ? 0 : this.start - this.fade;
-                this.duration = (this.duration+(this.fade*2) > this.source.buffer.duration || this.duration === 0) ? this.source.buffer.duration : this.duration+(this.fade*2);
-                this.source.start = userContext.currentTime;
-                this.playHead.connect(this.output);
-                this.output.gain.setValueAtTime(0, userContext.currentTime);
-                this.output.gain.linearRampToValueAtTime(1, userContext.currentTime+this.fade);
-                this.output.gain.setValueAtTime(1, userContext.currentTime+this.duration-this.fade);
-                this.output.gain.linearRampToValueAtTime(0, userContext.currentTime+this.duration);
-                //this.output.gain.setValueCurveAtTime(this.parent.han, userContext.currentTime, this.duration);
-                this.source.noteGrainOn(0, this.start, this.duration); 
-                this.playing = true;
-
+            value: function (buffer, start, duration) {
+                if (buffer && buffer.constructor.name === "AudioBuffer") {
+                    this.source = userContext.createBufferSource(mixToMono = false);
+                    this.source.buffer = buffer;  
+                    
+                    this.start = ((start - this.fade) < 0) ? 0 : (start - this.fade);
+                    this.duration = (duration+(this.fade*2) > this.source.buffer.duration || duration === 0) ? this.source.buffer.duration : duration+(this.fade*2);
+                    this.source.start = userContext.currentTime; 
+                    this.output.gain.setValueAtTime(0, this.source.start);
+                    this.output.gain.linearRampToValueAtTime(1, this.source.start+this.fade);
+                    this.output.gain.setValueAtTime(1, this.source.start+this.duration-this.fade);
+                    this.output.gain.linearRampToValueAtTime(0, this.source.start+this.duration);
+                    this.source.noteGrainOn(0, this.start, this.duration); 
+                    this.playHead.connect(this.output);
+                    this.source.connect(this.output);
+                    this.playing = true;
+                }       
             }
         },
         stop: {
             value: function() {
-                this.source.noteOff(0);
-                this.playHead.disconnect(this.output);
                 this.playing = false;
                 if(this.onStop) this.onStop(this.index); 
+                this.source.noteOff(0);
+                this.playHead.disconnect(this.output);
+                
+                
             }
         },
         follow: {
-            value: function() {
+            value: function(e) {
                 if (this.playing) {
                     this.playHeadPos = userContext.currentTime - this.source.start;
-
                 }
-                if (this.playHeadPos >= this.duration-this.fade && this.playing && !this.fadingOut){
+                if (this.playHeadPos >= (this.duration-this.fade*2) && this.playing && !this.fadingOut){
                     this.onFadeOut();
                     this.fadingOut = true;
                 }
                 if (this.playHeadPos >= this.duration && this.playing){
                     this.stop();
+                    this.fadingOut = false;
+                    this.timeJitter = this.playHeadPos - this.duration;
                 }
             }
         },
         time: {
             get: function() {
-                return this.start + this.fade + this.playHeadPos;
+                return this.start + this.fade + this.playHeadPos - this.timeJitter;
             }
         }
     });
@@ -774,7 +818,7 @@
         },
         init: {
             value: function(){
-                this.anal.fftSize = 1024;
+                this.anal.fftSize = 2048;
                 this.anal.smoothingTimeConstant = 0.3;
             }
         } 
