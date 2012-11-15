@@ -345,16 +345,29 @@
         this.input.connect(this.panner);
         this.input.connect(this.analyser.input);
         this.input.connect(this.builder);
+        
         this.panner.connect(this.output);
         this.output.connect(userContext.destination); // destination might be a mixer later
-        
-       
-        this.capturedBuffers = {
-            "0" : [],
-            "1" : [],
-            "2" : [],
-            "4" : []        
-        };
+             
+        this.capturedBuffers = (function(){
+
+            var left = [];
+            var right = [];
+           
+            return {
+                set : function(buffer){
+                    if(buffer[0]) left.push(buffer[0]);
+                    if(buffer[0]) right.push(buffer[0]);
+                },
+                get : function(){
+                    var result = [];
+                    result[0] = left.splice(0, left.length);
+                    result[1] = right.splice(0, right.length);
+                    return result;     
+                }     
+            }
+             
+        })();
 
         this.init();
 
@@ -365,7 +378,7 @@
         defaults: {
             value: {
                 buffer: {value: null, automatable: false},
-                buildRate: {value: 1024, automatable: false, type: INT},
+                buildRate: {value: 4096, automatable: false, type: INT},
                 building: {value: false, automatable:false, type:BOOLEAN},
                 loop: {value: false, automatable:false, type:BOOLEAN}
             }
@@ -389,63 +402,81 @@
                     current = 0;
                     
                 function onSamplerStop(){
-                    if(current === length && self.loop) {
-                        self.building = false; 
-                        self.play(self.drops);          
-                    }   
-                    if(current === length && !self.loop) self.stop();                   
-                }
-
-                function onSamplerNotify(){
-                    if(current < length) playNext(current);           
-                }
-
-                function playNext(seqNr){
-                        ++current;
-                        self.buffer = seq[seqNr].sample; 
-                        var buffer =  seq[seqNr].sample;
-                        var start = seq[seqNr].sampleStart;
-                        var duration = seq[seqNr].sampleDuration;
-                        self.builder.connect(self.output);
-                        self.sampler.connect(self.input);
-                        if(buffer) self.sampler.play(buffer, start, duration);            
-                }
-
-                this.sampler = new userInstance.Sampler({onStop: onSamplerStop, onVoiceFadeOut: onSamplerNotify});
-               
-
-                if( length > 1){
-                    
-                    playNext(current);
-
-                } else {
-                    ++current;
-                    self.buffer = seq.sample; 
-                    var buffer =  seq.sample;
-                    var start = seq.sampleStart;
-                    var duration = seq.sampleDuration;
-                    this.builder.connect(self.output);
-                    this.sampler.connect(this.input);
-                    if(buffer) this.sampler.play(buffer, start, duration);    
                    
+                      
+                        self.stop();
+                       
+                                  
                 }
+
+                
+                this.sampler = new userInstance.Sampler({onStop: onSamplerStop});
+               
+                ++current;
+                self.buffer = seq.sample; 
+                var buffer =  seq.sample;
+                var start = seq.sampleStart;
+                var duration = seq.sampleDuration;
+                this.sampler.connect(this.input);
+                this.builder.connect(this.output);
+                if(buffer) this.sampler.play(buffer, start, duration);    
+                   
+               
+            }
+        },
+        playBuffs: {
+            value: function(value, building){
+                this.building = building;
+
+                var self = this;
+                seq = value,
+                length = (Object.prototype.toString.call( seq ) === '[object Array]') ? seq.length : 1; 
+                current = 0;
+
+                function onGrainerStop(){
+                    if(self.loop) {
+                        self.stop();
+                        self.playBuffs(self.drops, false);          
+                    }               
+                }
+
+                var buffCat = [[],[]];
+
+                for (var i = 0; i < length; ++i){
+                     var seqBuffs = seq[i].buffers;
+                     
+                     for (var j = 0; j < seqBuffs[0].length; ++j){
+                        buffCat[0].push(seqBuffs[0][j]);
+                        buffCat[1].push(seqBuffs[1][j]); 
+                     }  
+                    
+                }
+
+                this.grainer = new userInstance.Sampler({onStop: onGrainerStop, bufferData: buffCat}); 
+                this.grainer.connect(this.input);
+                this.builder.connect(this.output);
+                this.grainer.playData();                        
+
             }
         },
         stop: {
             enumerable: true,
             value: function(){
                 if(this.sampler) this.sampler.disconnect(this.input);
-                if(this.builder) this.builder.disconnect(this.output);
+                if(this.grainer) this.grainer.disconnect(this.input);
+                this.builder.disconnect(this.output);
             }
         },
         build: {
             value: function(e){
 
                 var channels = e.inputBuffer.numberOfChannels;
+                var buffer = [];
                 for (var i = 0; i < channels; ++i){
-                    this.capturedBuffers[i].push(e.inputBuffer.getChannelData(i));
+                    buffer[i] = new Float32Array(e.inputBuffer.getChannelData(i));
                 }
-
+                this.capturedBuffers.set(buffer);
+                
 
                 if(this.parent && this.parent.turtle){
 
@@ -459,7 +490,6 @@
                     }
 
                     if (analysis.loudness > 10){
-                        console.log(this.capturedBuffers[1]);
                              
                         turtle.push();
                         turtle.penDown; 
@@ -477,14 +507,12 @@
                         var width = Math.log(analysis.loudness)*Math.atan(cent);
                         (width < 0) ? width *= -Math.PI : width = width;
                         turtle.setWidth(width);
-                        var distance = analysis.loudness*Math.cos(cent)/Math.PI/5;
+                        var captured = this.capturedBuffers.get();
+                        var distance = captured[0].length * analysis.loudness / 10 * Math.sin(cent);
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
                         var drop = turtle.drop(distance);
-                       
-                        drop.sample = this.buffer;
-                        var delta = userContext.currentTime - this.sampler.lastTimeCheck;
-                        drop.sampleDuration = ( delta > 0 ) ? delta : this.builder.bufferSize / this.sampleRate;
-                        drop.sampleStart = this.sampler.meanTime;
+                        drop.buffers = captured;
+                        
                         drop.collectable = true;   
 
                         this.parent.add(drop);
@@ -541,8 +569,12 @@
             properties = this.getDefaults();
         }
 
+        var self = this;
+
         this.output = userContext.createGainNode();
-        this.input = userContext.createGainNode();
+        this.input = userContext.createGainNode();   
+        this.rebuilder = userContext.createJavaScriptNode(4096, 1, 2);
+        this.rebuilder.onaudioprocess = function(e) { self.rebuild(e) };
 
         this.input.connect(this.output);
 
@@ -554,9 +586,12 @@
 
         this.lastTimeCheck = userContext.currentTime;
 
-        this.han = this.generateHanning();
+        this.han = this.generateHanning(4096);
 
         this.voiceC = 0;
+
+        this.bufferData = properties.bufferData || this.defaults.bufferData.value;
+        this.bufferIndex = 0;
 
         this.initVoices();
 
@@ -567,7 +602,8 @@
             value: {
                 maxVoices: {value: 4, automatable: false, type: INT},
                 onStop: {value: function(){}, automatable: false},
-                onVoiceFadeOut: {value: function(){}, automatable: false}
+                onVoiceFadeOut: {value: function(){}, automatable: false},
+                bufferData : {value: [], automatable: false}
             }
         },
         play: {
@@ -582,6 +618,39 @@
                 } else {
                     console.log("full")
                 }  
+            }
+        },
+        playData: {
+             value : function(){
+                this.playing = true;
+                this.rebuilder.connect(this.input);
+              
+            }
+        },
+        stopData: {
+             value : function(){
+                this.playing = false;
+                this.rebuilder.disconnect(this.input);  
+                this.onStop();            
+            }
+        },
+        rebuild: {
+            value: function(e){   
+                    
+                    var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);
+                    var id = this.bufferIndex;
+                    var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
+
+                    for (var i = 0; i < left.length; ++i){
+                        left[i] =  this.bufferData[0][id][i];
+                        right[i] = this.bufferData[1][id][i];
+                        if(isHan) left[i] *= this.han[i];
+                        if(isHan) right[i] *= this.han[i];
+                    }
+                   
+                    if (this.bufferIndex === this.bufferData[0].length - 1) this.stopData();
+                    ++this.bufferIndex; 
+                
             }
         },
         idleVoices: {
@@ -616,9 +685,8 @@
             }
         },
         generateHanning: {
-            value: function(factor){
-                var factor = (!factor) ? 1 : factor;
-                var curveLength = userContext.sampleRate;
+            value: function(length){
+                var curveLength = length;
                 var curve = new Float32Array(curveLength);
                 for (var i = 0; i < curveLength; ++i){
                     curve[i] =  0.5 * ( 1 - Math.cos( (2*Math.PI*i) / (curveLength+1 - 1) ) ); 
@@ -777,6 +845,7 @@
                 var freqData = new Uint8Array(this.anal.frequencyBinCount);
                 this.anal.getByteFrequencyData(freqData);
                 ++this.count;
+                //console.log("fft");
                 return freqData;
             }
         },

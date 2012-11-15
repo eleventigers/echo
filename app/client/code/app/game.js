@@ -107,7 +107,7 @@ defaultState.onMouseDown = function(event, x, y){
 				tree.turtle = turtle;
 
 				this.scene.add(tree);
-				tree.sound.play(this.collected);
+				tree.sound.playBuffs(this.collected, true);
 				console.log(this.collected);
 				this.collected = [];	
 			}		
@@ -178,28 +178,33 @@ defaultState.onActivation = function() {
 
 	if (this.audio){
 		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
-		this.audio.buffers.loadFreesound(["4456", "15394"], false, function(buffers){
+		this.audio.buffers.load(samples, function(buffers){
+			for(var i = 0; i < buffers.length; ++i){
 
-			var test = new Struct.Tree();
-			var testsound = new self.audio.Sound3D({building:true, loop:true});
-			test.add(testsound);
+				var test = new Struct.Tree();
+				var testsound = new self.audio.Sound3D({building:true, loop:true});
+				test.add(testsound);
+				
+				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
+				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
+				var normalizationMatrix = new THREE.Matrix4();
+				normalizationMatrix.rotateX(Math.PI / 2);
+				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+				turtleGeometry.applyMatrix(normalizationMatrix);
+				turtleGeometry.computeBoundingSphere();	
+				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+
+				test.add(turtle);	
+				self.scene.add(test);
+
+				test.sound = testsound;
+				test.turtle = turtle;
+
+				console.log(buffers[i])
 			
-			var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});
-			var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-			var normalizationMatrix = new THREE.Matrix4();
-			normalizationMatrix.rotateX(Math.PI / 2);
-			normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-			turtleGeometry.applyMatrix(normalizationMatrix);
-			turtleGeometry.computeBoundingSphere();	
-			var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
-
-			test.add(turtle);	
-			self.scene.add(test);
-
-			test.sound = testsound;
-			test.turtle = turtle;
+				test.sound.play({sample: buffers[i], sampleStart:0, sampleDuration:0});
+			}
 			
-			test.sound.play({sample:self.audio.buffers.get("15394"), sampleStart:0, sampleDuration:0});
 			
 		});
 	}
