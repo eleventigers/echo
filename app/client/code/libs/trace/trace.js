@@ -395,25 +395,36 @@
             value: function(value, building){
 
                 var self = this;
+                var prevMesh;
                 this.building = building;
-        
                     
                 function onSamplerStop(){
                         self.stop();
                         if(self.loop) self.play(self.drops, false);                    
                 }
 
+                function onIndexChange(drop){
+                    drop.dance();
+                    // var match = buffDog[index];
+                    // if(prevMesh) prevMesh.scale.divideScalar(1.2);
+                    // var currentMesh = self.drops[match];
+                    // currentMesh.scale.multiplyScalar(1.2);
+                    // prevMesh = currentMesh;
+
+                }
+
                 function seqBuffs(value){
                     var length = value.length;
-                    var buffCat = [[],[]];
+                    var buffCat = [[],[],[]];
                     for (var i = 0; i < length; ++i){
-                         var seqBuffs = value[i].buffers;   
+                         var seqBuffs = value[i].buffers;  
                          for (var j = 0; j < seqBuffs[0].length; ++j){
                             buffCat[0].push(seqBuffs[0][j]);
-                            buffCat[1].push(seqBuffs[1][j]); 
+                            buffCat[1].push(seqBuffs[1][j]);
+                            buffCat[2].push(value[i]);
                          }      
                     }
-                    self.sampler = new userInstance.Sampler({onStop: onSamplerStop, bufferData: buffCat}); 
+                    self.sampler = new userInstance.Sampler({onStop: onSamplerStop, bufferData: buffCat, onIndexChange: onIndexChange}); 
                     self.sampler.connect(self.input);
                     self.builder.connect(self.output);
                     self.sampler.playData();
@@ -561,6 +572,7 @@
         this.maxVoices = properties.maxVoices || this.defaults.maxVoices.value;
 
         this.onStop = properties.onStop || this.defaults.onStop.value;
+        this.onIndexChange = properties.onIndexChange || this.defaults.onIndexChange.value;
 
         this.han = this.generateHanning(4096);
         this.bufferData = properties.bufferData || this.defaults.bufferData.value;
@@ -575,9 +587,9 @@
         traceName: {value: "Sampler"},
         defaults: {
             value: {
-                maxVoices: {value: 4, automatable: false, type: INT},
+                maxVoices: {value: 2, automatable: false, type: INT},
                 onStop: {value: function(){}, automatable: false},
-                onVoiceFadeOut: {value: function(){}, automatable: false},
+                onIndexChange: {value: function(){}, automatable: false},
                 bufferData : {value: [], automatable: false}
             }
         },
@@ -612,6 +624,8 @@
                     var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);
                     var id = this.bufferIndex;
                     var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
+
+                    this.onIndexChange(this.bufferData[2][id]);
 
                     for (var i = 0; i < left.length; ++i){
                         left[i] =  this.bufferData[0][id][i];
