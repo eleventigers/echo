@@ -9,7 +9,8 @@ var PointerLockControls = function ( camera ) {
 	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
 	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
 
-	yawObject.position.y = 100;
+	yawObject.position.y= 10;
+	yawObject.position.z = 100;
 	yawObject.add( pitchObject );
 
 	var moveForward = false;

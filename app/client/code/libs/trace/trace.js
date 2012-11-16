@@ -487,8 +487,8 @@
 
                         turtle.pitch(angle);
                         turtle.yaw(cent);
-                        //turtle.roll(cent);
-                        var width = Math.log(analysis.loudness)*Math.atan(cent)*Math.PI;
+                        turtle.roll(angle);
+                        var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;
                         (width < 0) ? width *= -Math.PI : width = width;
                         turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
