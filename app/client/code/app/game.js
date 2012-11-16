@@ -107,7 +107,7 @@ defaultState.onMouseDown = function(event, x, y){
 				tree.turtle = turtle;
 
 				this.scene.add(tree);
-				tree.sound.playBuffs(this.collected, true);
+				tree.sound.play(this.collected, true);
 				console.log(this.collected);
 				this.collected = [];	
 			}		
@@ -177,7 +177,7 @@ defaultState.onActivation = function() {
 	this.scene.add(arrow);
 
 	if (this.audio){
-		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV"];
+		var samples = ["/sounds/SpokeWindmill.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
 		this.audio.buffers.load(samples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
 
@@ -202,7 +202,7 @@ defaultState.onActivation = function() {
 
 				console.log(buffers[i])
 			
-				test.sound.play({sample: buffers[i], sampleStart:0, sampleDuration:0});
+				test.sound.play({sample: buffers[i], sampleStart:0, sampleDuration:0}, true);
 			}
 			
 			
