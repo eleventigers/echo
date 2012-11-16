@@ -77,7 +77,7 @@
                     request.send();
                 }
 
-                function loadFreesoundBuffer (id, analysis, callback) {
+                function loadFreesoundBuffer (id, callback, analysis) {
                     var url, filename, returnedSndInfo;
                     var request = new XMLHttpRequest();
                     freesound.getSound(id, function(sound){
@@ -162,14 +162,14 @@
                             });
                         }
                     },
-                    loadFreesound : function(id, analysis, callback){
+                    loadFreesound : function(id, callback, analysis){
                         if (!freesound) return;
                         if( Object.prototype.toString.call( id ) === '[object Array]' ){
                             var count = 0;
                             var i;
                             var buffers = [];
                             for (i = 0; i < id.length; ++i) {
-                                loadFreesoundBuffer(id[i], analysis, function(status, buffer){
+                                loadFreesoundBuffer(id[i], function(status, buffer){
                                     if (status){
                                         ++count;
                                         buffers.push(buffer);
@@ -180,16 +180,16 @@
                                     if (count !== id.length && i === id.length-1) {
                                         if (callback) callback(false);
                                     }
-                                });                               
+                                }, analysis);                               
                             }      
                         } else {
-                            loadFreesoundBuffer(id, analysis, function(status, buffer){
+                            loadFreesoundBuffer(id, function(status, buffer){
                                 if (status){
                                     if (callback) callback(buffer);
                                 } else {
                                      if (callback) callback(false);
                                 }
-                            });
+                            }, analysis);
                         }
                     }
                 }
@@ -404,27 +404,23 @@
                 }
 
                 function onIndexChange(drop){
-                    drop.dance();
-                    // var match = buffDog[index];
-                    // if(prevMesh) prevMesh.scale.divideScalar(1.2);
-                    // var currentMesh = self.drops[match];
-                    // currentMesh.scale.multiplyScalar(1.2);
-                    // prevMesh = currentMesh;
+                   if(drop){
+                        drop.dance();
+                        self.panPos(drop.position);
+                   } 
 
                 }
 
+                function onSamplerError(){
+                    console.log("boom");
+                    self.sampler.disconnect(self.input);
+                    self.builder.disconnect(self.output);
+                    if(self.parent) self.parent.removeSelf();
+                }
+
                 function seqBuffs(value){
-                    var length = value.length;
-                    var buffCat = [[],[],[]];
-                    for (var i = 0; i < length; ++i){
-                         var seqBuffs = value[i].buffers;  
-                         for (var j = 0; j < seqBuffs[0].length; ++j){
-                            buffCat[0].push(seqBuffs[0][j]);
-                            buffCat[1].push(seqBuffs[1][j]);
-                            buffCat[2].push(value[i]);
-                         }      
-                    }
-                    self.sampler = new userInstance.Sampler({onStop: onSamplerStop, bufferData: buffCat, onIndexChange: onIndexChange}); 
+                    var segments = self.buffCat(value);
+                    self.sampler = new userInstance.Sampler({onStop: onSamplerStop, bufferData: segments, onIndexChange: onIndexChange, onError: onSamplerError}); 
                     self.sampler.connect(self.input);
                     self.builder.connect(self.output);
                     self.sampler.playData();
@@ -478,14 +474,13 @@
                         cent = 0;
                     }
 
-                    if (analysis.loudness > 10){
-                             
-                        turtle.push();
+                    if (analysis.loudness > 0){
+                           if (turtle.stack.length>0) turtle.pop();   
+                      
                         turtle.penDown; 
 
-                        if (analysis.loudness > analysis.avgLoudness){
-                            if (turtle.stack.length>0) turtle.pop();
-                            
+                        if (analysis.loudness < analysis.avgLoudness){
+                            turtle.push(); 
                             cent /= -100 * Math.cos(Math.PI*analysis.loudness);
                             angle = cent * analysis.loudness / 10;
                         }
@@ -493,11 +488,11 @@
                         turtle.pitch(angle);
                         turtle.yaw(cent);
                         //turtle.roll(cent);
-                        var width = Math.log(analysis.loudness)*Math.atan(cent);
+                        var width = Math.log(analysis.loudness)*Math.atan(cent)*Math.PI;
                         (width < 0) ? width *= -Math.PI : width = width;
                         turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
-                        var distance = captured[0].length * analysis.loudness / 10 * Math.sin(cent);
+                        var distance = captured[0].length * analysis.loudness / Math.PI ;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
                         var drop = turtle.drop(distance);
                         drop.buffers = captured;
@@ -522,10 +517,33 @@
                 }
                 return dropped;
             }
-        },    
+        }, 
+        dropBust: {
+            value: function(){
+                if(this.sampler) {
+                     var newSegments = this.buffCat(this.drops);
+                     this.sampler.bufferData = newSegments;
+                }       
+            }
+        },
+        buffCat: {
+            value: function(value) {
+                var length = value.length;
+                var cat = [[],[],[]];
+                for (var i = 0; i < length; ++i){
+                     var seqBuffs = value[i].buffers;  
+                     for (var j = 0; j < seqBuffs[0].length; ++j){
+                        cat[0].push(seqBuffs[0][j]);
+                        cat[1].push(seqBuffs[1][j]);
+                        cat[2].push(value[i]);
+                     }      
+                }
+                return cat;
+            }
+        },   
         init: {
             value: function(){
-                this.panner.refDistance = 20;
+                this.panner.refDistance = 40;
                 this.panner.rolloffFactor = 2;
             }
         },
@@ -573,6 +591,7 @@
 
         this.onStop = properties.onStop || this.defaults.onStop.value;
         this.onIndexChange = properties.onIndexChange || this.defaults.onIndexChange.value;
+        this.onError = properties.onError || this.defaults.onError.value;
 
         this.han = this.generateHanning(4096);
         this.bufferData = properties.bufferData || this.defaults.bufferData.value;
@@ -590,6 +609,7 @@
                 maxVoices: {value: 2, automatable: false, type: INT},
                 onStop: {value: function(){}, automatable: false},
                 onIndexChange: {value: function(){}, automatable: false},
+                onError: { value: function(){}, automatable: false},
                 bufferData : {value: [], automatable: false}
             }
         },
@@ -620,22 +640,27 @@
             }
         },
         rebuild: {
-            value: function(e){    
-                    var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);
-                    var id = this.bufferIndex;
-                    var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
+            value: function(e){
+                    if (this.bufferData[0].length === 0){
+                        this.onError();
+                        return;
+                    } else {
+                        var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);
+                        var id = this.bufferIndex;
+                        var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
 
-                    this.onIndexChange(this.bufferData[2][id]);
+                        this.onIndexChange(this.bufferData[2][id]);
 
-                    for (var i = 0; i < left.length; ++i){
-                        left[i] =  this.bufferData[0][id][i];
-                        right[i] = this.bufferData[1][id][i];
-                        if(isHan) left[i] *= this.han[i];
-                        if(isHan) right[i] *= this.han[i];
-                    }
-                   
-                    if (this.bufferIndex === this.bufferData[0].length - 1) this.stop();
-                    ++this.bufferIndex;     
+                        for (var i = 0; i < left.length; ++i){
+                            left[i] =  this.bufferData[0][id][i];
+                            right[i] = this.bufferData[1][id][i];
+                            if(isHan) left[i] *= this.han[i];
+                            if(isHan) right[i] *= this.han[i];
+                        }
+                       
+                        if (this.bufferIndex === this.bufferData[0].length - 1) this.stop();
+                        ++this.bufferIndex;     
+                    }          
             }
         },
         idleVoices: {

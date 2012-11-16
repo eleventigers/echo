@@ -15,7 +15,11 @@ Struct.Tree.prototype.removeChild = function(child){
 	}
 };
 Struct.Tree.prototype.removeSelf = function(){
-	console.log("suicide");
-	this.parent.remove(this);
+	if(this.parent) {
+		this.parent.remove(this);
+	} else {
+		console.log(this, "has no parent... :<");
+	}
+	
 };
 

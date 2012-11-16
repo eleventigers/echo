@@ -108,7 +108,6 @@ defaultState.onMouseDown = function(event, x, y){
 
 				this.scene.add(tree);
 				tree.sound.play(this.collected, true);
-				console.log(this.collected);
 				this.collected = [];	
 			}		
 			
@@ -178,11 +177,12 @@ defaultState.onActivation = function() {
 
 	if (this.audio){
 		var samples = ["/sounds/SpokeWindmill.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
-		this.audio.buffers.load(samples, function(buffers){
+		var freeSamples = ["42256", "15682", "56581"]
+		this.audio.buffers.loadFreesound(freeSamples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
 
 				var test = new Struct.Tree();
-				var testsound = new self.audio.Sound3D({building:true, loop:true});
+				var testsound = new self.audio.Sound3D({loop:true});
 				test.add(testsound);
 				
 				var material = new THREE.MeshLambertMaterial({color: 0xFF0000,ambient: 0xFF0000});

@@ -46,11 +46,13 @@ Turtle.prototype.drop = function(distance){
 			return self;
 		};
 		mesh.dance = function(time){
-			var time = (time) ? time : 500;
+			var time = (time) ? time : 200;
 			var self = this;
 			var parent = this.parent;
-			self.scale.multiplyScalar(1.2);
-			var id = window.setInterval(function() {window.clearInterval(id); self.scale.divideScalar(1.2);}, time);
+			self.scale.multiplyScalar(1.1);
+			var count = 0;
+			
+			var id = window.setInterval(function() {window.clearInterval(id); self.scale.divideScalar(1.1); }, time);
 		}
 		bottomRadius = this.width;
 		topRadius = this.width;
