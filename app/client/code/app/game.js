@@ -89,25 +89,9 @@ defaultState.onMouseDown = function(event, x, y){
 		if(event.button === 0){
 			if(this.collected.length > 0){
 
-				var ray = lookAndShoot(this.controls);
-				var randColor = parseInt('0x'+Math.floor(Math.random()*16777215).toString(16), 16);
-				var material = new THREE.MeshLambertMaterial({color: randColor,ambient: randColor});
-				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-				var normalizationMatrix = new THREE.Matrix4();
-				normalizationMatrix.rotateX(Math.PI / 2);
-				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-				turtleGeometry.applyMatrix(normalizationMatrix);
-				turtleGeometry.computeBoundingSphere();	
-				var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, this.scene.children);
-				var tree = new Struct.Tree();
-				var sound = new this.audio.Sound3D({building:true, loop:true});
-
-				tree.add(sound);
-				tree.add(turtle);
-				tree.sound = sound;
-				tree.turtle = turtle;
-
+				var tree = deployDrops(this);
 				this.scene.add(tree);
+				this.playsects.push(tree);
 				tree.sound.play(this.collected, true);
 				this.collected = [];	
 			}		
@@ -128,19 +112,22 @@ defaultState.onResize = function () {
 defaultState.onRender = function(){
 	if (this.running){
 		++this.counter;
-		this.collisions = detectCollision(this.scene.children, this.controls);
+		this.collisions = detectCollision(this.playsects, this.controls);
 		this.controls.collUpdate(this.collisions);
 		this.controls.update(Date.now() - TIME);
 		this.stats.update();
 		this.audio.listener.update(this.camera);
 		this.renderer.render( this.scene, this.camera );
+
 		if(this.stateManager.cursor.downLeft){
 
 		} 
 		if(this.stateManager.cursor.downRight){
 			if(this.counter === 1) collectDrops(this);
 		}
+
 		TIME = Date.now();
+
 		if(this.counter == 3) this.counter = 0;
 	}	
 };
@@ -165,11 +152,9 @@ defaultState.onActivation = function() {
 
 	var self = this;
 
-	this.testSound;
-
 	this.renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
 	this.camera = setupCamera();
-	this.scene = setupScene();
+	this.scene = setupScene(this);
 	this.controls = setupControls(this.camera);
 	this.scene.add(this.controls.getYaw());
 	this.audio = setupAudio();
@@ -178,22 +163,17 @@ defaultState.onActivation = function() {
 
 	if (this.audio){
 		var samples = ["/sounds/SpokeWindmill.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
-		var freeSamples = ["31356", "11622", "38559"]
-		this.audio.buffers.loadFreesound(freeSamples, function(buffers){
+		var freeSamples = ["31556", "11842", "38749"]
+		this.audio.buffers.load(samples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
-
 				var test = new Struct.Tree();
 				var testsound = new self.audio.Sound3D({loop:true});
 				test.add(testsound);
 				var randColor = parseInt('0x'+Math.floor(Math.random()*16777215).toString(16), 16);
 				var material = new THREE.MeshLambertMaterial({color: randColor,ambient: randColor});
-				var turtleGeometry = new THREE.CubeGeometry(1, 1, 1);
-				var normalizationMatrix = new THREE.Matrix4();
-				normalizationMatrix.rotateX(Math.PI / 2);
-				normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-				turtleGeometry.applyMatrix(normalizationMatrix);
-				turtleGeometry.computeBoundingSphere();	
-				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, turtleGeometry, .1, self.scene.children);
+				var geometry = new THREE.CubeGeometry(1, 1, 1);
+			
+				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, geometry, .1, self.playsects);
 
 				test.add(turtle);	
 				self.scene.add(test);
@@ -201,7 +181,7 @@ defaultState.onActivation = function() {
 				test.sound = testsound;
 				test.turtle = turtle;
 
-				console.log(buffers[i])
+				self.playsects.push(test);
 			
 				test.sound.play({sample: buffers[i], sampleStart:0, sampleDuration:0}, true);
 			}	
@@ -225,7 +205,7 @@ function setupRenderer(width, height, container) {
 	return renderer;
 }
 
-function setupScene(){
+function setupScene(state){
 
 	var scene = new THREE.Scene();
 	scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.005 );
@@ -241,16 +221,22 @@ function setupScene(){
 
 	scene.add( light );
 
-	// Floor
-
+	//
 	var geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
 	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 	var material = new THREE.MeshPhongMaterial( { color: 0xffffff, opacity: 0.2 } );
 	var mesh = new THREE.Mesh( geometry, material );
 	mesh.position.y = 0;
 	scene.add(mesh);
-
+	state.playsects.push(mesh);
+	
 	return scene;
+}
+
+function setupFloor(state){
+
+	
+
 }
 
 function setupAudio(listener){
@@ -274,6 +260,26 @@ function setupStats(container) {
 	return stats;
 }
 
+function deployDrops(state) {
+	var ray = lookAndShoot(state.controls);
+	var randColor = parseInt('0x'+Math.floor(Math.random()*16777215).toString(16), 16);
+	var material = new THREE.MeshLambertMaterial({color: randColor,ambient: randColor});
+	var geometry = new THREE.CubeGeometry(1, 1, 1);
+	var normalizationMatrix = new THREE.Matrix4();
+	normalizationMatrix.rotateX(Math.PI / 2);
+	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
+	geometry.applyMatrix(normalizationMatrix);
+	geometry.computeBoundingSphere();	
+	var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, geometry, .1, state.scene.children);
+	var tree = new Struct.Tree();
+	var sound = new state.audio.Sound3D({building:true, loop:true});
+	tree.add(turtle);
+	tree.turtle = turtle;
+	tree.add(sound);
+	tree.sound = sound;
+	return tree;
+}
+
 function collectDrops(state){
 
 	var ray = lookAndShoot(state.controls);
@@ -293,7 +299,6 @@ function collectDrops(state){
 
 	arrow.position = ray.origin;
 	arrow.setDirection(ray.direction);
-
 
 }
 

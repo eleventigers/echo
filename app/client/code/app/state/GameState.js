@@ -61,6 +61,9 @@ GameState = function () {
 	//
 	this.counter = 0;
 
+	//Player collidees
+	this.playsects = [];
+
 }
 
 GameState.prototype.constructor = GameState;

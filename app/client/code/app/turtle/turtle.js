@@ -4,8 +4,7 @@
  */
 
 
-Turtle = function(position, direction, up, material, geometry, width, collide){
-	
+Turtle = function(position, direction, up, material, geometry, width, collide){	
 	this.position = position;
 	this.direction = direction;
 	this.up = up;
@@ -18,7 +17,6 @@ Turtle = function(position, direction, up, material, geometry, width, collide){
 	this.drawing = true;
 	this.stack = [];
 	this.collidable = collide;
-
 }
 
 Turtle.prototype.constructor = Turtle;
@@ -31,29 +29,16 @@ Turtle.prototype.go = function(distance){
     return this.position = newPosition;
 };
 Turtle.prototype.drop = function(distance){
+	// Check collisions
 	this.shoot();
+
 	var newPosition, distance, mesh, bottomRadius, topRadius, height, shearFactor, turtleTransform;
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance));
+
     if (this.drawing) {
         distance = this.position.distanceTo(newPosition);
-		mesh = new THREE.Mesh(this.geometry, this.material);
-		mesh.pickUp = function(time){
-			var time = (time) ? time : 0;
-			var self = this;
-			var parent = this.parent;
-			var id = window.setInterval(function() {window.clearInterval(id); parent.removeChild(self); }, time);
-			return self;
-		};
-		mesh.dance = function(time){
-			var time = (time) ? time : 200;
-			var self = this;
-			var parent = this.parent;
-			self.scale.multiplyScalar(1.1);
-			var count = 0;
-			
-			var id = window.setInterval(function() {window.clearInterval(id); self.scale.divideScalar(1.1); }, time);
-		}
+		mesh = new Struct.Segment(this.geometry, this.material);	
 		bottomRadius = this.width;
 		topRadius = this.width;
 		height = distance;
@@ -148,12 +133,10 @@ Turtle.prototype.retrieveMeshes = function() {
 	return _results;
 };
 
-
-
 Turtle.prototype.push = function(){
 	this.stack.push({position: this.position, direction : this.direction, up : this.up, material : this.material, geometry : this.geometry, width : this.width, drawing : this.drawing});
 	return this;
-}
+};
 
 Turtle.prototype.pop = function(){
 	var state = this.stack.pop();
@@ -165,7 +148,7 @@ Turtle.prototype.pop = function(){
 	this.width = state.width;
 	this.drawing = state.drawing;
 	return this;
-}
+};
 
 Turtle.prototype.deg2rad = function(degrees) {
     return degrees / 360 * 2 * Math.PI;

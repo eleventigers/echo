@@ -645,8 +645,9 @@
                         this.onError();
                         return;
                     } else {
-                        var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);
+
                         var id = this.bufferIndex;
+                        var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);   
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
 
                         this.onIndexChange(this.bufferData[2][id]);
