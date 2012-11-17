@@ -49,6 +49,7 @@ Turtle.prototype.drop = function(distance){
 		turtleTransform.multiplySelf(new THREE.Matrix4(1, shearFactor, 0, 0, 0, 1, 0, 0, 0, shearFactor, 1, 0, 0, 0, 0, 1));
 		turtleTransform.scale(new THREE.Vector3(bottomRadius, bottomRadius, height));
 		mesh.applyMatrix(turtleTransform);
+		
     }
     this.position = newPosition;
     return mesh;

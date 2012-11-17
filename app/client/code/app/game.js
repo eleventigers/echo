@@ -163,8 +163,8 @@ defaultState.onActivation = function() {
 
 	if (this.audio){
 		var samples = ["/sounds/SpokeWindmill.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
-		var freeSamples = ["31556", "11842", "38749"]
-		this.audio.buffers.load(samples, function(buffers){
+		var freeSamples = ["3156", "11242", "3859"]
+		this.audio.buffers.loadFreesound(freeSamples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
 				var test = new Struct.Tree();
 				var testsound = new self.audio.Sound3D({loop:true});
@@ -233,11 +233,6 @@ function setupScene(state){
 	return scene;
 }
 
-function setupFloor(state){
-
-	
-
-}
 
 function setupAudio(listener){
 	return new Trace();
@@ -270,7 +265,7 @@ function deployDrops(state) {
 	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 	geometry.applyMatrix(normalizationMatrix);
 	geometry.computeBoundingSphere();	
-	var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, geometry, .1, state.scene.children);
+	var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, geometry, .1, state.playsects);
 	var tree = new Struct.Tree();
 	var sound = new state.audio.Sound3D({building:true, loop:true});
 	tree.add(turtle);
