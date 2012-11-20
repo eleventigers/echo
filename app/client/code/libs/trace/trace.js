@@ -314,6 +314,43 @@
     function tanh (n) {
         return (Math.exp(n) - Math.exp(-n)) / (Math.exp(n) + Math.exp(-n));
     }
+    function freqToMidi(frequency){
+        if(frequency) return 12 * Math.log(frequency/440)/Math.log(2)+69;
+    }
+    function pitchToColor(pitch){
+        if(pitch >= 0 && pitch <= 127){
+            var note = Math.round(pitch) % 12;
+            switch(note){
+                case 0:
+                    return 0x7de700;
+                case 1:
+                    return 0x1cf8eb;
+                case 2:
+                    return 0x0472ee;
+                case 3:
+                    return 0x350ede;
+                case 4:
+                    return 0x8a34bd;
+                case 5:
+                    return 0x460d5a;
+                case 6:
+                    return 0x7b1264;
+                case 7:
+                    return 0xce2829;
+                case 8:
+                    return 0xea5212;
+                case 9:
+                    return 0xff7e00;
+                case 10:
+                    return 0xffe400;
+                case 11:
+                    return 0xc9f400;
+            }
+        } else {
+            console.log("trace.js: supplied pitch is not withing MIDI reange");
+        }
+
+    }
 
     ////////// Container for sounds positioned in 3D space ////////////
 
@@ -338,21 +375,16 @@
         this.panner = userContext.createPanner();
         this.output = userContext.createGainNode();
         this.analyser = new userInstance.Analyser();
-        this.builder = userContext.createJavaScriptNode(this.buildRate);
-        this.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
 
         this.input.connect(this.panner);
         this.input.connect(this.analyser.input);
-        this.input.connect(this.builder);
         
         this.panner.connect(this.output);
         this.output.connect(userContext.destination); // destination might be a mixer later
              
         this.capturedBuffers = (function(){
-
             var left = [];
-            var right = [];
-           
+            var right = [];    
             return {
                 set : function(buffer){
                     if(buffer[0]) left.push(buffer[0]);
@@ -364,8 +396,7 @@
                     result[1] = right.splice(0, right.length);
                     return result;     
                 }     
-            }
-             
+            }    
         })();
 
         this.init();
@@ -396,11 +427,12 @@
 
                 var self = this;
                 var prevMesh;
-                this.building = building;
+
+                self.building = building;
                     
                 function onSamplerStop(){
                         self.stop();
-                        if(self.loop) self.play(self.drops, false);                    
+                        if(self.loop) self.play(self.drops, false);              
                 }
 
                 function onIndexChange(drop){
@@ -413,25 +445,30 @@
 
                 function onSamplerError(){
                     console.log("boom");
-                    self.sampler.disconnect(self.input);
-                    self.builder.disconnect(self.output);
+                    self.stop();
                     if(self.parent) self.parent.removeSelf();
                 }
 
                 function seqBuffs(value){
                     var segments = self.buffCat(value);
+                    self.builder = userContext.createJavaScriptNode(self.buildRate);
+                    self.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
                     self.sampler = new userInstance.Sampler({onStop: onSamplerStop, bufferData: segments, onIndexChange: onIndexChange, onError: onSamplerError}); 
                     self.sampler.connect(self.input);
+                    self.input.connect(self.builder);
                     self.builder.connect(self.output);
                     self.sampler.playData();
                 }
                 
                 function oneShot(value) {
+                    self.builder = userContext.createJavaScriptNode(self.buildRate);
+                    self.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
                     self.sampler = new userInstance.Sampler({onStop: onSamplerStop});
                     var buffer =  value.sample;
                     var start = value.sampleStart;
                     var duration = value.sampleDuration;
                     self.sampler.connect(self.input);
+                    self.input.connect(self.builder);
                     self.builder.connect(self.output);
                     if(buffer) self.sampler.play(buffer, start, duration);    
                 }
@@ -441,15 +478,21 @@
                 } else {
                     oneShot(value);
                 }
-
                     
             }
         },
         stop: {
             enumerable: true,
             value: function(){
-                if(this.sampler) this.sampler.disconnect(this.input);
-                this.builder.disconnect(this.output);
+                if(this.sampler) {
+                    this.sampler.disconnect(this.input);
+                    this.sampler = null;
+                };
+                if(this.builder){
+                    this.builder.disconnect(this.output);
+                    this.builder = null;
+                }
+                
             }
         },
         build: {
@@ -460,24 +503,24 @@
                 for (var i = 0; i < channels; ++i){
                     buffer[i] = new Float32Array(e.inputBuffer.getChannelData(i));
                 }
-                this.capturedBuffers.set(buffer);
-                
+                this.capturedBuffers.set(buffer);   
 
                 if(this.parent && this.parent.turtle){
 
                     var angle = 0,
                         turtle = this.parent.turtle,
-                        analysis = this.analyser.analysis,
-                        cent = 360  / analysis.centroid * analysis.loudness;
+                        analysis = this.analyser.analysis;
+
+                    var cent = 360  / analysis.centroid * analysis.loudness;
 
                     if (!isFinite(cent)){
                         cent = 0;
                     }
 
-                    if (analysis.loudness > 0){
-                           if (turtle.stack.length>0) turtle.pop();   
-                      
-                        turtle.penDown; 
+                    if (analysis.loudness > 1){
+
+                        if (turtle.stack.length>0) turtle.pop();   
+                   
 
                         if (analysis.loudness < analysis.avgLoudness){
                             turtle.push(); 
@@ -487,19 +530,26 @@
 
                         turtle.pitch(angle);
                         turtle.yaw(cent);
-                        turtle.roll(angle);
+                        // turtle.roll(angle);
+                        var color = pitchToColor(freqToMidi(analysis.avgCentroid));
+                        if(color) turtle.setColor(color);
                         var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;
                         (width < 0) ? width *= -Math.PI : width = width;
+                        (width < 1) ? width = Math.PI : width = width;
                         turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
-                        var distance = captured[0].length * analysis.loudness / Math.PI ;
+                        var distance = captured[0].length *  analysis.loudness / 3  ;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
+                        
                         var drop = turtle.drop(distance);
                         drop.buffers = captured;
-                        
-                        drop.collectable = true;   
-
+                        drop.collectable = true;  
+                        drop.castShadow = true;
+                        drop.material.wireframe = true;
+                        //drop.receiveShadow = true;
                         this.parent.add(drop);
+                        drop.dance();
+
                         this.panPos(turtle.position);
                                     
                     }
@@ -520,10 +570,10 @@
         }, 
         dropBust: {
             value: function(){
-                if(this.sampler) {
-                     var newSegments = this.buffCat(this.drops);
-                     this.sampler.bufferData = newSegments;
-                }       
+               
+                     // var newSegments = this.buffCat(this.drops);
+                     // this.sampler.bufferData = newSegments;
+                      
             }
         },
         buffCat: {
@@ -581,7 +631,7 @@
         this.output = userContext.createGainNode();
         this.input = userContext.createGainNode();   
         this.rebuilder = userContext.createJavaScriptNode(4096, 1, 2);
-        this.rebuilder.onaudioprocess = function(e) { self.rebuild(e) };
+        this.rebuilder.onaudioprocess = function(e) { if(!this.bufferData) self.rebuild(e)};
 
         this.input.connect(this.output);
 
@@ -610,7 +660,7 @@
                 onStop: {value: function(){}, automatable: false},
                 onIndexChange: {value: function(){}, automatable: false},
                 onError: { value: function(){}, automatable: false},
-                bufferData : {value: [], automatable: false}
+                bufferData : {value: null, automatable: false}
             }
         },
         play: {
@@ -641,11 +691,12 @@
         },
         rebuild: {
             value: function(e){
-                    if (this.bufferData[0].length === 0){
+                    if (!this.bufferData[0]){
+                        this.rebuilder.disconnect(this.input);
                         this.onError();
                         return;
                     } else {
-
+                      
                         var id = this.bufferIndex;
                         var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);   
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
@@ -653,8 +704,8 @@
                         this.onIndexChange(this.bufferData[2][id]);
 
                         for (var i = 0; i < left.length; ++i){
-                            left[i] =  this.bufferData[0][id][i];
-                            right[i] = this.bufferData[1][id][i];
+                            if(this.bufferData[0][id]) left[i] =  this.bufferData[0][id][i];
+                            if(this.bufferData[1][id]) right[i] = this.bufferData[1][id][i];
                             if(isHan) left[i] *= this.han[i];
                             if(isHan) right[i] *= this.han[i];
                         }
@@ -870,7 +921,6 @@
                 this.anal.smoothingTimeConstant = 0.3;
             }
         } 
-
     });
  
     Trace.toString = Trace.prototype.toString = function () {

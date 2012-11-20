@@ -8,7 +8,7 @@ ss.client.define('main', {
   view: 'app.html',
   css:  ['libs/reset.css', 'app.styl'],
   code: ['libs/jquery/jquery.min.js', 'libs/three/three.js', 'libs/three', 'libs/underscore', 'libs/lsystem', 'libs/stats/Stats.js', 
-  		'libs/freesound/freesoundLib.js', 'libs/dat-gui/dat.gui.min.js', 'libs/phys', 'libs/trace' , 'app'],	
+  		'libs/freesound/freesoundLib.js', 'libs/dat-gui/dat.gui.min.js', 'libs/phys', 'libs/tween' , 'libs/trace' , 'app'],	
   tmpl: '*'
 });
 
