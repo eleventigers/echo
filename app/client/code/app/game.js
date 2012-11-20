@@ -14,7 +14,7 @@ var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
 // Global clock
 var TIME = Date.now();
 
-var arrow = new THREE.ArrowHelper(new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, 0 ));
+//var arrow = new THREE.ArrowHelper(new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, 0 ));
 
 // Pointer lock
 var element = document.body;
@@ -89,9 +89,9 @@ defaultState.onMouseDown = function(event, x, y){
 		if(event.button === 0){
 			if(this.collected.length > 0){
 
-				var tree = deployDrops(this);
-				this.scene.add(tree);
-				this.playsects.push(tree);
+				var tree = deployDrops();
+				addToScene(tree);
+				addToPlaysects(tree);
 				tree.sound.play(this.collected, true);
 				this.collected = [];	
 			}		
@@ -118,6 +118,7 @@ defaultState.onRender = function(){
 		this.stats.update();
 		this.audio.listener.update(this.camera);
 		this.renderer.render( this.scene, this.camera );
+		TWEEN.update();	
 
 		if(this.stateManager.cursor.downLeft){
 
@@ -154,16 +155,17 @@ defaultState.onActivation = function() {
 
 	this.renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
 	this.camera = setupCamera();
-	this.scene = setupScene(this);
 	this.controls = setupControls(this.camera);
+	this.scene = setupScene();
 	this.scene.add(this.controls.getYaw());
 	this.audio = setupAudio();
 	this.stats = setupStats(container);
-	this.scene.add(arrow);
+	setupFloor(this);
+	//this.scene.add(arrow);
 
 	if (this.audio){
-		var samples = ["/sounds/SpokeWindmill.WAV", "/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
-		var freeSamples = ["3156", "11242", "3859"]
+		var samples = ["/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
+		var freeSamples = ["2597", "22345", "28597"]
 		this.audio.buffers.loadFreesound(freeSamples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
 				var test = new Struct.Tree();
@@ -176,14 +178,15 @@ defaultState.onActivation = function() {
 				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, geometry, .1, self.playsects);
 
 				test.add(turtle);	
-				self.scene.add(test);
 
 				test.sound = testsound;
 				test.turtle = turtle;
-
-				self.playsects.push(test);
+				
+				addToScene(test);
+				addToPlaysects(test);
 			
 				test.sound.play({sample: buffers[i], sampleStart:0, sampleDuration:0}, true);
+				
 			}	
 		});
 	}
@@ -191,46 +194,90 @@ defaultState.onActivation = function() {
 
 var stateMan = new StateManager(defaultState, document);
 
+
 ////
 ////
 
 function setupRenderer(width, height, container) {
-	var renderer = new THREE.WebGLRenderer( { clearColor: 0x000000, clearAlpha:1, alpha:true, antialias: true } );
+	var renderer = new THREE.WebGLRenderer( { alpha:true, antialias: true } );
 	renderer.setSize( width, height );
-	renderer.autoClear = false;
+	renderer.setClearColorHex(  0x000000, 0.9);
 	renderer.shadowMapEnabled = true;
 	renderer.shadowMapSoft = true;
-	renderer.physicallyBasedShading = false;
+	renderer.gammaInput = true;
+	renderer.gammaOutput = true;
+	renderer.physicallyBasedShading = true;
 	container.appendChild(renderer.domElement);
 	return renderer;
 }
 
-function setupScene(state){
+function setupScene(){
 
 	var scene = new THREE.Scene();
-	scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.005 );
+	scene.fog = new THREE.FogExp2( 0xc4d2ff, 0.0002 );
+	//scene.fog.color.setHSV( 0.51, 0.6, 0.025 );
 
 	// Lights
-
-	var ambient = new THREE.AmbientLight( 0x333333 );
+	var ambient = new THREE.AmbientLight( 0xf2f2f2 );
+	//ambient.color.setHSV( 0.1, 0.5, 0.3 );
 	scene.add( ambient );
 
-	var light = new THREE.SpotLight( 0xF0F0F0 );
-	light.position.set( 0, 5000, 1000 );
-	light.dynamic = true;
+
+	var light = new THREE.DirectionalLight( 0x757575, 1 );
+	light.position.set( 1000, 5000, 1000 );
+	// light.target = stateMan.activeAppState.controls.getYaw();
+	light.castShadow = true;
+	light.shadowCameraNear = 50;
+	light.shadowCameraFar = 6000;
+	light.shadowCameraFov = 75;
+	//light.shadowCameraVisible = true;
+	light.shadowDarkness = 0.3;
+	light.shadowMapWidth = 4096;
+	light.shadowMapHeight = 4096;
 
 	scene.add( light );
 
-	//
-	var geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
-	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
-	var material = new THREE.MeshPhongMaterial( { color: 0xffffff, opacity: 0.2 } );
-	var mesh = new THREE.Mesh( geometry, material );
-	mesh.position.y = 0;
-	scene.add(mesh);
-	state.playsects.push(mesh);
+	var geometry = new THREE.SphereGeometry(200, 20);
+	var material = new THREE.MeshPhongMaterial({ color: 0xff0000 })
+	var lightSphere = new THREE.Mesh(geometry, material);
+	lightSphere.position.set(1000, 5000, 1000);
+	scene.add(lightSphere);
+
+	light = new THREE.SpotLight(0xffffff, 1 );
+	light.target = lightSphere;
+	light.position = stateMan.activeAppState.controls.getYaw().position;
+	light.castShadow = true;
+	scene.add(light);
+
+	var otherLight = new THREE.SpotLight(0xffffff, 50 );
 	
+	otherLight.position.set(0, 4500, 0);
+	otherLight.target = lightSphere;
+
+	scene.add(otherLight);
+
 	return scene;
+}
+
+
+
+function setupFloor(){
+	var geometry = new THREE.PlaneGeometry( 20000, 20000, 10, 20 );
+	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+	//geometry.dynamic = true;
+
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	geometry.computeBoundingSphere();
+
+	material = new THREE.MeshPhongMaterial( { color: 0x757575, wireframe: false } );
+	//material.wireframe = true;
+	ground = new THREE.Mesh( geometry, material );
+	ground.position.y = -10;
+	ground.receiveShadow = true;
+
+	addToScene(ground);
+	addToPlaysects(ground);
 }
 
 
@@ -239,8 +286,9 @@ function setupAudio(listener){
 }
 
 function setupCamera(){
-	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 2000 );
+	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 6000 );
 }
+
 
 function setupControls(camera) {
 	return new PointerLockControls(camera);
@@ -255,8 +303,24 @@ function setupStats(container) {
 	return stats;
 }
 
-function deployDrops(state) {
-	var ray = lookAndShoot(state.controls);
+
+function addToScene(object){
+	console.log(stateMan.activeAppState)
+	stateMan.activeAppState.scene.add(object);	
+	
+}
+
+function addToPlaysects(object){
+	stateMan.activeAppState.playsects.push(object);
+}
+
+
+
+function deployDrops() {
+
+	// TODO: separate geometry and material instances from this, so we are not creating many of the same
+
+	var ray = lookAndShoot(stateMan.activeAppState.controls);
 	var randColor = parseInt('0x'+Math.floor(Math.random()*16777215).toString(16), 16);
 	var material = new THREE.MeshLambertMaterial({color: randColor,ambient: randColor});
 	var geometry = new THREE.CubeGeometry(1, 1, 1);
@@ -264,10 +328,10 @@ function deployDrops(state) {
 	normalizationMatrix.rotateX(Math.PI / 2);
 	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 	geometry.applyMatrix(normalizationMatrix);
-	geometry.computeBoundingSphere();	
-	var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, geometry, .1, state.playsects);
+	geometry.computeBoundingSphere();
+	var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, geometry, .1, stateMan.activeAppState.playsects);
 	var tree = new Struct.Tree();
-	var sound = new state.audio.Sound3D({building:true, loop:true});
+	var sound = new stateMan.activeAppState.audio.Sound3D({building:true, loop:true});
 	tree.add(turtle);
 	tree.turtle = turtle;
 	tree.add(sound);
@@ -275,25 +339,27 @@ function deployDrops(state) {
 	return tree;
 }
 
-function collectDrops(state){
+function collectDrops(){
 
-	var ray = lookAndShoot(state.controls);
-	var intersects = ray.intersectObjects(state.scene.children, true);
+	var ray = lookAndShoot(stateMan.activeAppState.controls);
+	var intersects = ray.intersectObjects(stateMan.activeAppState.scene.children, true);
 
 	if (intersects.length > 0) {
 		var first = intersects[ 0 ];
 		var distance = first.distance;
 		if (distance >= 0 && distance <= 200) {
 			if(first.object.collectable){
-				var pick = first.object.pickUp();
-				pick.collectable = false;
-				state.collected.push(pick);
+				var pick = first.object.pickUp(stateMan.activeAppState.controls.getYaw());
+				if (pick){
+					pick.collectable = false;
+					stateMan.activeAppState.collected.push(pick);
+				}	
 			}
 		}	
 	} 
 
-	arrow.position = ray.origin;
-	arrow.setDirection(ray.direction);
+	// arrow.position = ray.origin;
+	// arrow.setDirection(ray.direction);
 
 }
 
@@ -313,7 +379,7 @@ function lookAndShoot (controls, far){
 	var globalVertex = controls.getYaw().matrix.multiplyVector3(frontVertex);
 	var directionVector = globalVertex.subSelf( pos );
 
-	return new THREE.Ray( pos, directionVector.normalize().setY(pitch.x), 0, far );
+	return new THREE.Ray( pos, directionVector.normalize().setY(pitch.x));
 
 }
 
@@ -347,7 +413,6 @@ function detectCollision(collidees, collider) {
 				"left": {},
 				"right": {},
 			};
-			var optCollisions = Object.create(collisions);
 			for (key in directions){
 				(directions[key].length > 1) ? localVertex =  vertices[directions[key][0]].clone().addSelf(vertices[directions[key][1]].clone()) : localVertex = vertices[directions[key][0]].clone();	
 				globalVertex = coll.getYaw().matrix.multiplyVector3(localVertex);
