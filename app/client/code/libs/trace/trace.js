@@ -369,7 +369,7 @@
         this.posDelta = new THREE.Vector3();
         this.buildRate = properties.buildRate || this.defaults.buildRate.value;
         this.building = properties.building || this.defaults.building.value;
-        this.loop =  properties.loop || this.defaults.loop.value;
+        this.loop =  properties.loop || this.defaults.loop.value;    
 
         this.input = userContext.createGainNode();
         this.panner = userContext.createPanner();
@@ -401,6 +401,8 @@
 
         this.init();
 
+
+
     };
 
     Trace.prototype.Sound3D.prototype = Object.create(new THREE.Object3D(), {
@@ -409,7 +411,7 @@
             value: {
                 buildRate: {value: 4096, automatable: false, type: INT},
                 building: {value: false, automatable:false, type:BOOLEAN},
-                loop: {value: false, automatable:false, type:BOOLEAN}
+                loop: {value: false, automatable:false, type:BOOLEAN},
             }
         }, 
         panPos: {  
@@ -423,24 +425,24 @@
         },
         play: {
             enumerable: true,
-            value: function(value, building){
+            value: function(value){
 
                 var self = this;
                 var prevMesh;
 
-                self.building = building;
+                self.building = value.building || false;
+                self.loop = value.loop || false;
                     
                 function onSamplerStop(){
                         self.stop();
-                        if(self.loop) self.play(self.drops, false);              
+                        if(self.loop) self.play({buffer:self.drops, loop:true});              
                 }
 
                 function onIndexChange(drop){
                    if(drop){
                         drop.dance();
-                        self.panPos(drop.position);
+                        self.panPos(drop.matrixWorld.getPosition());
                    } 
-
                 }
 
                 function onSamplerError(){
@@ -461,10 +463,11 @@
                 }
                 
                 function oneShot(value) {
+
                     self.builder = userContext.createJavaScriptNode(self.buildRate);
                     self.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
                     self.sampler = new userInstance.Sampler({onStop: onSamplerStop});
-                    var buffer =  value.sample;
+                    var buffer =  value.buffer;
                     var start = value.sampleStart;
                     var duration = value.sampleDuration;
                     self.sampler.connect(self.input);
@@ -473,10 +476,11 @@
                     if(buffer) self.sampler.play(buffer, start, duration);    
                 }
 
-                if (Object.prototype.toString.call( value ) === '[object Array]') {     
-                    seqBuffs(value);
+                if (Object.prototype.toString.call( value.buffer ) === '[object Array]') {     
+                    seqBuffs(value.buffer);
                 } else {
                     oneShot(value);
+
                 }
                     
             }
@@ -519,28 +523,27 @@
 
                     if (analysis.loudness > 1){
 
-                        if (turtle.stack.length>0) turtle.pop();   
+                        //if (turtle.stack.length>0) turtle.pop();   
                    
-
                         if (analysis.loudness < analysis.avgLoudness){
-                            turtle.push(); 
+                            //turtle.push(); 
                             cent /= -100 * Math.cos(Math.PI*analysis.loudness);
                             angle = cent * analysis.loudness / 10;
                         }
 
                         turtle.pitch(angle);
                         turtle.yaw(cent);
-                        // turtle.roll(angle);
+                       // turtle.roll(cent % 10);
                         var color = pitchToColor(freqToMidi(analysis.avgCentroid));
                         if(color) turtle.setColor(color);
                         var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;
                         (width < 0) ? width *= -Math.PI : width = width;
-                        (width < 1) ? width = Math.PI : width = width;
+                        if (width < 1) width *= Math.PI;
                         turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
                         var distance = captured[0].length *  analysis.loudness / 3  ;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
-                        
+                        if (distance < 1) distance *= Math.PI;
                         var drop = turtle.drop(distance);
                         drop.buffers = captured;
                         drop.collectable = true;  
@@ -550,7 +553,7 @@
                         this.parent.add(drop);
                         drop.dance();
 
-                        this.panPos(turtle.position);
+                        this.panPos(turtle.matrixWorld.getPosition());
                                     
                     }
 
@@ -561,10 +564,12 @@
             get: function(){
                 var dropped = [];
                 var i;
-                var children = this.parent.children;
-                for (i = 0; i < children.length; ++i){
-                    if (children[i].collectable) dropped.push(children[i]);
-                }
+                if(this.parent){
+                    var children = this.parent.children;
+                    for (i = 0; i < children.length; ++i){
+                        if (children[i].collectable) dropped.push(children[i]);
+                    }
+                }     
                 return dropped;
             }
         }, 
@@ -593,6 +598,7 @@
         },   
         init: {
             value: function(){
+
                 this.panner.refDistance = 40;
                 this.panner.rolloffFactor = 2;
             }
@@ -679,6 +685,8 @@
         playData: {
              value : function(){
                     this.playing = true;
+                    this.output.gain.setValueAtTime(0, userContext.currentTime);
+                    this.output.gain.linearRampToValueAtTime(1, userContext.currentTime+0.15);
                     this.rebuilder.connect(this.input);     
             }
         },
@@ -702,8 +710,9 @@
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
 
                         this.onIndexChange(this.bufferData[2][id]);
+                        // console.log(this.bufferData[2][id].children)
 
-                        for (var i = 0; i < left.length; ++i){
+                        for (var i = 0; i < left.length; ++i){   
                             if(this.bufferData[0][id]) left[i] =  this.bufferData[0][id][i];
                             if(this.bufferData[1][id]) right[i] = this.bufferData[1][id][i];
                             if(isHan) left[i] *= this.han[i];
@@ -744,7 +753,7 @@
                 var curveLength = length;
                 var curve = new Float32Array(curveLength);
                 for (var i = 0; i < curveLength; ++i){
-                    curve[i] =  0.5 * ( 1 - Math.cos( (2*Math.PI*i) / (curveLength+1 - 1) ) ); 
+                    curve[i] =  0.9 * ( 1 - Math.cos( (2*Math.PI*i) / (curveLength+1 - 1) ) ); 
                 }
                 return curve;   
             }
@@ -918,7 +927,7 @@
         init: {
             value: function(){
                 this.anal.fftSize = 2048;
-                this.anal.smoothingTimeConstant = 0.3;
+                this.anal.smoothingTimeConstant = 0.8;
             }
         } 
     });

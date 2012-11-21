@@ -36,8 +36,10 @@ Turtle.prototype.drop = function(distance){
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance));
 
+  
     if (this.drawing) {
         distance = this.position.distanceTo(newPosition);
+
 		mesh = new Struct.Segment(this.geometry, this.material);	
 		bottomRadius = this.width;
 		topRadius = this.width;

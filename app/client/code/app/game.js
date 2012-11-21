@@ -87,13 +87,27 @@ defaultState.onMouseDown = function(event, x, y){
 		event.preventDefault();
 		
 		if(event.button === 0){
+			console.log(this.collected)
 			if(this.collected.length > 0){
 
-				var tree = deployDrops();
-				addToScene(tree);
-				addToPlaysects(tree);
-				tree.sound.play(this.collected, true);
-				this.collected = [];	
+				var ray = lookAndShoot(this.controls);
+				var intersects = ray.intersectObjects(this.playsects, true);
+				if(intersects.length > 0){
+
+					if(intersects[0].object.constructor === Struct.Segment){
+						var branch = appendDrops(intersects[0], new THREE.Vector3(0,0,0), ray.direction.negate());
+						intersects[0].object.add(branch);
+						branch.sound.play({buffer: this.collected, loop:true, building:true});
+						this.collected = [];
+						//intersects[0].object.parent.sound.queue({buffer: this.collected, root: intersects[0]});
+					}
+				}
+
+				// var tree = deployDrops();
+				// addToScene(tree);
+				// addToPlaysects(tree);
+				// tree.sound.play({buffer: this.collected, loop:true, building:true});
+				// this.collected = [];	
 			}		
 			
 		}	
@@ -164,18 +178,18 @@ defaultState.onActivation = function() {
 	//this.scene.add(arrow);
 
 	if (this.audio){
-		var samples = ["/sounds/G1.WAV", "/sounds/Scrape1.WAV", "/sounds/bow2.WAV"];
-		var freeSamples = ["2597", "22345", "28597"]
-		this.audio.buffers.loadFreesound(freeSamples, function(buffers){
+		var samples = ["/sounds/drone.wav"];
+		var freeSamples = ["22461", "38858", "38555"]
+		this.audio.buffers.load(samples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
 				var test = new Struct.Tree();
-				var testsound = new self.audio.Sound3D({loop:true});
+				var testsound = new self.audio.Sound3D();
 				test.add(testsound);
 				var randColor = parseInt('0x'+Math.floor(Math.random()*16777215).toString(16), 16);
 				var material = new THREE.MeshLambertMaterial({color: randColor,ambient: randColor});
 				var geometry = new THREE.CubeGeometry(1, 1, 1);
 			
-				var turtle = new Turtle(new THREE.Vector3(0, 10, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, geometry, .1, self.playsects);
+				var turtle = new Turtle(new THREE.Vector3(0, 2, 0), new THREE.Vector3(Math.random()*1, 0, Math.random()*1), new THREE.Vector3(0, 1, 0), material, geometry, .1, self.playsects);
 
 				test.add(turtle);	
 
@@ -185,7 +199,7 @@ defaultState.onActivation = function() {
 				addToScene(test);
 				addToPlaysects(test);
 			
-				test.sound.play({sample: buffers[i], sampleStart:0, sampleDuration:0}, true);
+				test.sound.play({buffer: buffers[i], sampleStart:0, sampleDuration:0, loop:true, building:true});
 				
 			}	
 		});
@@ -316,11 +330,10 @@ function addToPlaysects(object){
 
 
 
-function deployDrops() {
+function appendDrops(segment, origin, direction) {
 
 	// TODO: separate geometry and material instances from this, so we are not creating many of the same
 
-	var ray = lookAndShoot(stateMan.activeAppState.controls);
 	var randColor = parseInt('0x'+Math.floor(Math.random()*16777215).toString(16), 16);
 	var material = new THREE.MeshLambertMaterial({color: randColor,ambient: randColor});
 	var geometry = new THREE.CubeGeometry(1, 1, 1);
@@ -329,31 +342,38 @@ function deployDrops() {
 	normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 	geometry.applyMatrix(normalizationMatrix);
 	geometry.computeBoundingSphere();
-	var turtle = new Turtle(ray.origin, ray.direction, new THREE.Vector3(0, 1, 0), material, geometry, .1, stateMan.activeAppState.playsects);
+	
+	
+	//
+	var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), material, geometry, 1, stateMan.activeAppState.playsects);
 	var tree = new Struct.Tree();
-	var sound = new stateMan.activeAppState.audio.Sound3D({building:true, loop:true});
+	var sound = new stateMan.activeAppState.audio.Sound3D();
 	tree.add(turtle);
 	tree.turtle = turtle;
 	tree.add(sound);
 	tree.sound = sound;
+	
+	
 	return tree;
 }
 
 function collectDrops(){
 
 	var ray = lookAndShoot(stateMan.activeAppState.controls);
-	var intersects = ray.intersectObjects(stateMan.activeAppState.scene.children, true);
+	var intersects = ray.intersectObjects(stateMan.activeAppState.playsects, true);
 
 	if (intersects.length > 0) {
 		var first = intersects[ 0 ];
 		var distance = first.distance;
 		if (distance >= 0 && distance <= 200) {
 			if(first.object.collectable){
-				var pick = first.object.pickUp(stateMan.activeAppState.controls.getYaw());
-				if (pick){
-					pick.collectable = false;
-					stateMan.activeAppState.collected.push(pick);
-				}	
+				first.object.pickUp(stateMan.activeAppState.controls.getYaw(), 500, function(pickings){
+					console.log(pickings);
+					for(var i = 0; i < pickings.length; ++i){
+						pickings[i].collectable = false;
+						stateMan.activeAppState.collected.push(pickings[i]);
+					}	
+				});		
 			}
 		}	
 	} 

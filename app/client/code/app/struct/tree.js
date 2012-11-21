@@ -7,17 +7,14 @@ Struct.Tree.prototype.removeChild = function(child){
 	if(child && this.children.length > 0){	
 		if(_.contains(this.children, child)){
 			this.remove(child);
-			console.log(this.children.length );
-			if(this.children.length === 2){ // CAUTION! This assumes that the last children are an Audio.Org and Turtle objects so we can delete the whole thing :?		
-				var self = this;
-				var id = window.setInterval(function() {window.clearInterval(id); self.removeSelf(); }, 2000);
+			if(this.children.length === 2){ // CAUTION! This assumes that the last children are an Audio.Org && Turtle objects so we can delete the whole thing :?		
+				this.removeSelf();
 			}
 		}
 	}
 };
 Struct.Tree.prototype.removeSelf = function(){
 	if(this.parent) {
-		this.children = [];
 		this.parent.remove(this);
 		console.log("suicide");
 	} else {
