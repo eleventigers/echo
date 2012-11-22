@@ -95,11 +95,17 @@ defaultState.onMouseDown = function(event, x, y){
 				if(intersects.length > 0){
 
 					if(intersects[0].object.constructor === Struct.Segment){
-						var branch = appendDrops(intersects[0], new THREE.Vector3(0,0,0), ray.direction.negate());
+						var branch = appendDrops(new THREE.Vector3(0,0,0), ray.direction.negate());
 						intersects[0].object.add(branch);
 						branch.sound.play({buffer: this.collected, loop:true, building:true});
 						this.collected = [];
 						//intersects[0].object.parent.sound.queue({buffer: this.collected, root: intersects[0]});
+					} else {
+						var branch = appendDrops(this.controls.getYaw().position.clone(), ray.direction);
+						addToScene(branch);
+						addToPlaysects(branch);
+						branch.sound.play({buffer: this.collected, loop:true, building:true});
+						this.collected = [];
 					}
 				}
 
@@ -178,8 +184,8 @@ defaultState.onActivation = function() {
 	//this.scene.add(arrow);
 
 	if (this.audio){
-		var samples = ["/sounds/drone.wav"];
-		var freeSamples = ["22461", "38858", "38555"]
+		var samples = ["/sounds/woodoverblade.wav"];
+		var freeSamples = ["58491", "38818", "48555"]
 		this.audio.buffers.load(samples, function(buffers){
 			for(var i = 0; i < buffers.length; ++i){
 				var test = new Struct.Tree();
@@ -199,7 +205,7 @@ defaultState.onActivation = function() {
 				addToScene(test);
 				addToPlaysects(test);
 			
-				test.sound.play({buffer: buffers[i], sampleStart:0, sampleDuration:0, loop:true, building:true});
+				test.sound.play({buffer: buffers[i], sampleStart:0, sampleDuration:0, loop:false, building:true});
 				
 			}	
 		});
@@ -330,7 +336,7 @@ function addToPlaysects(object){
 
 
 
-function appendDrops(segment, origin, direction) {
+function appendDrops(origin, direction) {
 
 	// TODO: separate geometry and material instances from this, so we are not creating many of the same
 
@@ -367,8 +373,7 @@ function collectDrops(){
 		var distance = first.distance;
 		if (distance >= 0 && distance <= 200) {
 			if(first.object.collectable){
-				first.object.pickUp(stateMan.activeAppState.controls.getYaw(), 500, function(pickings){
-					console.log(pickings);
+				first.object.pickUp(stateMan.activeAppState.controls.getYaw(), 500, function(pickings){	
 					for(var i = 0; i < pickings.length; ++i){
 						pickings[i].collectable = false;
 						stateMan.activeAppState.collected.push(pickings[i]);
@@ -377,9 +382,6 @@ function collectDrops(){
 			}
 		}	
 	} 
-
-	// arrow.position = ray.origin;
-	// arrow.setDirection(ray.direction);
 
 }
 

@@ -4,7 +4,8 @@
  */
 
 
-Turtle = function(position, direction, up, material, geometry, width, collide){	
+Turtle = function(position, direction, up, material, geometry, width, collide){
+	THREE.Object3D.call(this);	
 	this.position = position;
 	this.direction = direction;
 	this.up = up;
@@ -31,18 +32,16 @@ Turtle.prototype.go = function(distance){
 Turtle.prototype.drop = function(distance){
 	// Check collisions
 	this.shoot();
-
 	var newPosition, distance, mesh, bottomRadius, topRadius, height, shearFactor, turtleTransform;
     newPosition = new THREE.Vector3();
-    newPosition.add(this.position, this.direction.clone().multiplyScalar(distance));
-
+    newPosition.add(this.position, this.direction.clone().multiplyScalar(distance).divideSelf(this.parent.parent.scale));
   
     if (this.drawing) {
         distance = this.position.distanceTo(newPosition);
-
-		mesh = new Struct.Segment(this.geometry, this.material);	
-		bottomRadius = this.width;
-		topRadius = this.width;
+		mesh = new Struct.Segment(this.geometry, this.material);
+			
+		bottomRadius = this.width /this.parent.parent.scale.x;
+		topRadius = this.width  /this.parent.parent.scale.x;
 		height = distance;
 		shearFactor = (topRadius - bottomRadius) / height;
 		turtleTransform = new THREE.Matrix4();
@@ -51,7 +50,7 @@ Turtle.prototype.drop = function(distance){
 		turtleTransform.multiplySelf(new THREE.Matrix4(1, shearFactor, 0, 0, 0, 1, 0, 0, 0, shearFactor, 1, 0, 0, 0, 0, 1));
 		turtleTransform.scale(new THREE.Vector3(bottomRadius, bottomRadius, height));
 		mesh.applyMatrix(turtleTransform);
-		
+		//mesh.scale.divideSelf(this.parent.parent.scale);
     }
     this.position = newPosition;
     return mesh;

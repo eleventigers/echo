@@ -510,7 +510,8 @@
                 this.capturedBuffers.set(buffer);   
 
                 if(this.parent && this.parent.turtle){
-
+                    var factor = 1;
+                    //if(this.parent.parent && this.parent.parent.constructor === Struct.Segment) factor = this.parent.parent.boundRadiusScale;
                     var angle = 0,
                         turtle = this.parent.turtle,
                         analysis = this.analyser.analysis;
@@ -527,8 +528,8 @@
                    
                         if (analysis.loudness < analysis.avgLoudness){
                             //turtle.push(); 
-                            cent /= -100 * Math.cos(Math.PI*analysis.loudness);
-                            angle = cent * analysis.loudness / 10;
+                            cent /= -10 * Math.cos(Math.PI*analysis.loudness);
+                            angle = cent * analysis.loudness;
                         }
 
                         turtle.pitch(angle);
@@ -539,17 +540,16 @@
                         var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;
                         (width < 0) ? width *= -Math.PI : width = width;
                         if (width < 1) width *= Math.PI;
-                        turtle.setWidth(width);
+                        turtle.setWidth(width/factor);
                         var captured = this.capturedBuffers.get();
-                        var distance = captured[0].length *  analysis.loudness / 3  ;
+                        var distance = captured[0].length *  analysis.loudness / 3;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
                         if (distance < 1) distance *= Math.PI;
-                        var drop = turtle.drop(distance);
+                        var drop = turtle.drop(distance/factor);
                         drop.buffers = captured;
                         drop.collectable = true;  
                         drop.castShadow = true;
                         drop.material.wireframe = true;
-                        //drop.receiveShadow = true;
                         this.parent.add(drop);
                         drop.dance();
 
@@ -708,7 +708,6 @@
                         var id = this.bufferIndex;
                         var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);   
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
-
                         this.onIndexChange(this.bufferData[2][id]);
                         // console.log(this.bufferData[2][id].children)
 
