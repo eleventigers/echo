@@ -7,9 +7,10 @@ Struct.Tree.prototype.removeChild = function(child){
 	if(child && this.children.length > 0){	
 		if(_.contains(this.children, child)){
 			this.remove(child);
-			if(this.children.length === 0){ // CAUTION! This assumes that the last children are an Audio.Org && Turtle objects so we can delete the whole thing :?		
+			if(!this.containsSegment()){ 
 				this.removeSelf();
 			}
+
 		}
 	}
 };
@@ -21,5 +22,12 @@ Struct.Tree.prototype.removeSelf = function(){
 		console.log(this, "has no parent... :<");
 	}
 	
+};
+
+Struct.Tree.prototype.containsSegment = function(){
+	for (var i = 0; i < this.children.length; ++i){
+		if (this.children[i].constructor === Struct.Segment) return true;
+	}
+	return false;
 };
 

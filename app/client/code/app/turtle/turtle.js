@@ -41,12 +41,12 @@ Turtle.prototype.drop = function(distance){
         distance = this.position.distanceTo(newPosition);
 		mesh = new Struct.Segment(this.geometry, this.material);
 		var lineGeo = new THREE.Geometry();
-		var lineMat = new THREE.LineBasicMaterial;
+		var lineMat = new THREE.LineBasicMaterial();
 		lineGeo.vertices.push(this.position);
 		lineGeo.vertices.push(newPosition);
 		line = new THREE.Line(lineGeo, lineMat);
+		line.castShadow = true;
 		this.parent.add(line);	
-		
 		bottomRadius = this.width / this.parent.parent.scale.x;
 		topRadius = this.width  / this.parent.parent.scale.x;
 		height = distance;
