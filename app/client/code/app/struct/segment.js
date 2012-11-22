@@ -35,26 +35,34 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 			if(tree.constructor === Struct.Tree){
 				
 				var tree = tree;
-				tree.sound.stop();	
-				pickSegment();
+				//tree.sound.stop();
+				tree.remove(tree.sound);
+				tree.remove(tree.turtle);
+				for (var i = 0; i < tree.children.length; ++i){
+					if (tree.children[i].constructor != Struct.Segment) {
+						tree.remove(tree.children[i]);
+					}
+				}
+
+				if(tree.children.length > 0) pickSegment();
 			
 				function pickSegment(){
-
-					tree.children[2].pickUp(self, 50, function(pick){
+					
+					tree.children[0].pickUp(self, 50, function(pick){
 						if (pick){
 							for(var n = 0; n < pick.length; ++n){
 								pickings.push(pick[n]);
 							}
 						}
-						if(tree.children.length > 2) {
+						if(tree.children.length > 0) {
 							pickSegment();
 						} else {
+							
 							console.log("done?")	
 							onComplete(); 		
 						}
 					});
 				}
-
 			} else {
 				
 				console.log("no tree")
@@ -62,12 +70,11 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 			}
 		}
 
-		function nextTree(){
+		function nextTree(){	
 			if (self.children.length != 0) {
 				pickTree(self.children[0], nextTree);
 			} else {
 				allTreesDone();
-
 			}					 	
 		}
 
@@ -78,8 +85,8 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 	    	fade.onComplete(function(){
 	    		pickings.push(self);
 	    		self.picking = false;
-	    		callback(pickings);
 	    		parent.removeChild(self);
+	    		callback(pickings);	
 	    	}).start();
 		}				   	    	
 	}
@@ -96,13 +103,11 @@ Struct.Segment.prototype.dance = function(time){
 		var origPos = self.matrix.getPosition();
 		var factor = {x:1, y:1, z:1};
 		if (this.parent) factor = this.parent.parent.scale;
-		console.log(factor)
 		var randPos = origPos.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.4, Math.random()*2-4, Math.random()*0.2-0.4).divideSelf(factor));
 
 		var rumble = new TWEEN.Tween( pos )
 					.to({x: randPos.x, y: randPos.y, z: randPos.z}, time / 2)
 					.easing( TWEEN.Easing.Sinusoidal.In )
-					//.interpolation(TWEEN.Interpolation.Bezier)
 					.onStart( function() {
 						material.wireframe = false;
 						self.fading = true;
@@ -111,7 +116,6 @@ Struct.Segment.prototype.dance = function(time){
 		var rumbleBack = new TWEEN.Tween( pos )
 					.to({x: origPos.x, y: origPos.y, z: origPos.z}, time / 2)
 					.easing( TWEEN.Easing.Sinusoidal.Out )
-					//.interpolation(TWEEN.Interpolation.Bezier)
 					.onComplete( function(){
 						material.wireframe = true;
 						self.fading = false;

@@ -32,24 +32,32 @@ Turtle.prototype.go = function(distance){
 Turtle.prototype.drop = function(distance){
 	// Check collisions
 	this.shoot();
-	var newPosition, distance, mesh, bottomRadius, topRadius, height, shearFactor, turtleTransform;
+	var newPosition, distance, mesh, line, bottomRadius, topRadius, height, shearFactor, turtleTransform;
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance).divideSelf(this.parent.parent.scale));
   
     if (this.drawing) {
+    	
         distance = this.position.distanceTo(newPosition);
 		mesh = new Struct.Segment(this.geometry, this.material);
-			
-		bottomRadius = this.width /this.parent.parent.scale.x;
-		topRadius = this.width  /this.parent.parent.scale.x;
+		var lineGeo = new THREE.Geometry();
+		var lineMat = new THREE.LineBasicMaterial;
+		lineGeo.vertices.push(this.position);
+		lineGeo.vertices.push(newPosition);
+		line = new THREE.Line(lineGeo, lineMat);
+		this.parent.add(line);	
+		
+		bottomRadius = this.width / this.parent.parent.scale.x;
+		topRadius = this.width  / this.parent.parent.scale.x;
 		height = distance;
-		shearFactor = (topRadius - bottomRadius) / height;
+		shearFactor = (topRadius - bottomRadius) / height / this.parent.parent.scale.y;
 		turtleTransform = new THREE.Matrix4();
 		turtleTransform.translate(this.position);
 		turtleTransform.lookAt(this.position, newPosition, this.getPerpVec(newPosition.clone().subSelf(this.position)));
 		turtleTransform.multiplySelf(new THREE.Matrix4(1, shearFactor, 0, 0, 0, 1, 0, 0, 0, shearFactor, 1, 0, 0, 0, 0, 1));
 		turtleTransform.scale(new THREE.Vector3(bottomRadius, bottomRadius, height));
 		mesh.applyMatrix(turtleTransform);
+
 		//mesh.scale.divideSelf(this.parent.parent.scale);
     }
     this.position = newPosition;
@@ -61,7 +69,7 @@ Turtle.prototype.shoot = function(){
 		var intersects = ray.intersectObjects(this.collidable, true);
 	
 		if (intersects.length > 0){
-			if (intersects[0].distance > 0 && intersects[0].distance < 20){
+			if (intersects[0].distance > 0 && intersects[0].distance < 100){
 				
 				var prevDir = this.direction.clone();
 				this.direction.crossSelf(intersects[0].object.position.clone().normalize());
