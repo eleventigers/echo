@@ -5,15 +5,20 @@ var PointerLockControls = function ( camera ) {
 	var pitchObject = new THREE.Object3D();
 	pitchObject.add( camera );
 
+	var pointGeometry = new THREE.PlaneGeometry(.1,.1);
+	var pointMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, opacity:0.8 } );
+	var pointObject = new THREE.Mesh( pointGeometry, pointMaterial );
+	pointObject.position.z = -8;
+
+	pitchObject.add( pointObject);
+
 	var cubeGeometry = new THREE.CubeGeometry(10,10,10,1,1,1);
 	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
 	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
 	
-	yawObject.position.y= 10;
-	yawObject.position.z = 100;
-	yawObject.add( pitchObject );
+	yawObject.position.y= 1;
 
-	
+	yawObject.add( pitchObject );
 
 	var moveForward = false;
 	var moveBackward = false;
@@ -120,7 +125,7 @@ var PointerLockControls = function ( camera ) {
 				break;
 			case 32: // space
 				//jump depends on how fast this is running
-				if ( inAir === 0 ) velocity.y += yawObject.boundRadius/2 - 1 + (velocity.z*velocity.z/2);
+				if ( inAir === 0 ) velocity.y += yawObject.boundRadius/2 - 1 + (velocity.z*velocity.z);
 				break;
 		}
 	};

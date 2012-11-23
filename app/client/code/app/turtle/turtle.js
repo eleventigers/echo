@@ -11,6 +11,8 @@ Turtle = function(position, direction, up, material, geometry, width, collide){
 	this.up = up;
 	this.material = material;
 	this.geometry = geometry;
+	
+	this.lineMat = new THREE.LineBasicMaterial();
 	this.width = width;
 	this.direction.normalize();
 	this.up.normalize();
@@ -18,10 +20,27 @@ Turtle = function(position, direction, up, material, geometry, width, collide){
 	this.drawing = true;
 	this.stack = [];
 	this.collidable = collide;
+
 }
 
 Turtle.prototype.constructor = Turtle;
 Turtle.prototype = new THREE.Object3D();
+Turtle.prototype.levels = function(){
+	var count = 0;
+	
+
+	function countLevels(parent) {
+		if(parent.parent) {
+			++count;	
+			return count = countLevels(parent.parent);	
+		} else {
+			return count;
+		}
+	}
+
+	return countLevels(this.parent);
+	
+};
 
 Turtle.prototype.go = function(distance){
 	var newPosition;
@@ -32,31 +51,33 @@ Turtle.prototype.go = function(distance){
 Turtle.prototype.drop = function(distance){
 	// Check collisions
 	this.shoot();
-	var newPosition, distance, mesh, line, bottomRadius, topRadius, height, shearFactor, turtleTransform;
+	var newPosition, distance, distFact, factor, mesh, line, lineGeo, bottomRadius, topRadius, height, shearFactor, turtleTransform;
+	factor = this.levels();
+    distFact = (factor === 1) ? 1 : Math.log(factor) + 3 % factor;
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance).divideSelf(this.parent.parent.scale));
-  
+  	
+
     if (this.drawing) {
     	
         distance = this.position.distanceTo(newPosition);
-		mesh = new Struct.Segment(this.geometry, this.material);
-		var lineGeo = new THREE.Geometry();
-		var lineMat = new THREE.LineBasicMaterial();
-		lineGeo.vertices.push(this.position);
-		lineGeo.vertices.push(newPosition);
-		line = new THREE.Line(lineGeo, lineMat);
-		line.castShadow = true;
-		this.parent.add(line);	
-		bottomRadius = this.width / this.parent.parent.scale.x;
-		topRadius = this.width  / this.parent.parent.scale.x;
-		height = distance;
-		shearFactor = (topRadius - bottomRadius) / height / this.parent.parent.scale.y;
+		mesh = new Struct.Segment(this.geometry, this.material);	
+		bottomRadius = this.width / this.parent.parent.boundRadiusScale  / factor / distFact;
+		topRadius = this.width  / this.parent.parent.boundRadiusScale / factor / distFact;
+		height = distance / distFact;
+		shearFactor = (topRadius - bottomRadius) / height ;
+		//shearFactor = 0;
 		turtleTransform = new THREE.Matrix4();
-		turtleTransform.translate(this.position);
+		turtleTransform.translate( this.position);
 		turtleTransform.lookAt(this.position, newPosition, this.getPerpVec(newPosition.clone().subSelf(this.position)));
 		turtleTransform.multiplySelf(new THREE.Matrix4(1, shearFactor, 0, 0, 0, 1, 0, 0, 0, shearFactor, 1, 0, 0, 0, 0, 1));
 		turtleTransform.scale(new THREE.Vector3(bottomRadius, bottomRadius, height));
 		mesh.applyMatrix(turtleTransform);
+		lineGeo = new THREE.Geometry();
+		lineGeo.vertices.push(this.position);
+		lineGeo.vertices.push(newPosition);
+		line = new THREE.Line(lineGeo, this.lineMat);
+		this.parent.add(line);
 
 		//mesh.scale.divideSelf(this.parent.parent.scale);
     }

@@ -8,6 +8,12 @@
 
             userContext = context;
             userInstance = this;
+            userMixer = userContext.createGainNode();
+            userCompressor = userContext.createDynamicsCompressor();
+            userCompressor.ratio.value = 20;
+            userCompressor.threshold.value = -30;
+            userMixer.connect(userCompressor);
+            userCompressor.connect(userContext.destination);
 
             ////////// Defining audio context listener, depends on THRE.js being present //////////
 
@@ -347,7 +353,7 @@
                     return 0xc9f400;
             }
         } else {
-            console.log("trace.js: supplied pitch is not withing MIDI reange");
+            console.log("trace.js: supplied pitch is not within MIDI range");
         }
 
     }
@@ -376,11 +382,12 @@
         this.output = userContext.createGainNode();
         this.analyser = new userInstance.Analyser();
 
-        this.input.connect(this.panner);
+        this.input.connect(this.panner);;
         this.input.connect(this.analyser.input);
         
         this.panner.connect(this.output);
-        this.output.connect(userContext.destination); // destination might be a mixer later
+        this.output.connect(userMixer); // destination might be a mixer later
+
              
         this.capturedBuffers = (function(){
             var left = [];
@@ -402,14 +409,13 @@
         this.init();
 
 
-
     };
 
     Trace.prototype.Sound3D.prototype = Object.create(new THREE.Object3D(), {
         traceName: {value: "Sound3D"},
         defaults: {
             value: {
-                buildRate: {value: 4096, automatable: false, type: INT},
+                buildRate: {value: 2048, automatable: false, type: INT},
                 building: {value: false, automatable:false, type:BOOLEAN},
                 loop: {value: false, automatable:false, type:BOOLEAN},
             }
@@ -430,8 +436,10 @@
                 var self = this;
                 var prevMesh;
 
-                self.building = value.building || false;
-                self.loop = value.loop || false;
+                if(value) {
+                    this.building = value.building || false;
+                    this.loop = value.loop || false;
+                }
                     
                 function onSamplerStop(){
                         self.stop();
@@ -476,13 +484,19 @@
                     if(buffer) self.sampler.play(buffer, start, duration);    
                 }
 
-                if (Object.prototype.toString.call( value.buffer ) === '[object Array]') {     
-                    seqBuffs(value.buffer);
+                if (!value){
+                    if(this.building) {
+                        this.building = false;
+                    }
+                    this.stop();   
+                    this.play({buffer:this.drops, building:false, loop:false});
                 } else {
-                    oneShot(value);
-
-                }
-                    
+                    if (Object.prototype.toString.call( value.buffer ) === '[object Array]') {     
+                        seqBuffs(value.buffer);
+                    }  else {
+                        oneShot(value);
+                    }
+                }                   
             }
         },
         stop: {
@@ -510,42 +524,40 @@
                 this.capturedBuffers.set(buffer);   
 
                 if(this.parent && this.parent.turtle){
-                    var factor = 1;
-                    //if(this.parent.parent && this.parent.parent.constructor === Struct.Segment) factor = this.parent.parent.boundRadiusScale;
+
                     var angle = 0,
                         turtle = this.parent.turtle,
-                        analysis = this.analyser.analysis;
-
-                    var cent = 360  / analysis.centroid * analysis.loudness;
+                        analysis = this.analyser.analysis,
+                        cent = 360  / analysis.centroid * analysis.loudness;
 
                     if (!isFinite(cent)){
                         cent = 0;
                     }
 
-                    if (analysis.loudness > 1){
+                    if (analysis.loudness > analysis.avgLoudness){
 
-                        //if (turtle.stack.length>0) turtle.pop();   
-                   
-                        if (analysis.loudness < analysis.avgLoudness){
-                            //turtle.push(); 
-                            cent /= -10 * Math.cos(Math.PI*analysis.loudness);
+                         
+                        // turtle.push(); 
+                        if (analysis.centroid < analysis.avgCentroid){
+                             //if (turtle.stack.length>0) turtle.pop(); 
+                            cent /= -100 * Math.sin(analysis.loudness);
                             angle = cent * analysis.loudness;
                         }
 
-                        turtle.pitch(angle);
-                        turtle.yaw(cent);
+                        turtle.pitch(cent);
+                        turtle.yaw(angle);
                        // turtle.roll(cent % 10);
                         var color = pitchToColor(freqToMidi(analysis.avgCentroid));
                         if(color) turtle.setColor(color);
-                        var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;
+                        var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI*2;
                         (width < 0) ? width *= -Math.PI : width = width;
-                        if (width < 1) width *= Math.PI;
-                        turtle.setWidth(width/factor);
+                        if (width < 1) width += Math.PI;
+                        turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
                         var distance = captured[0].length *  analysis.loudness / 3;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
-                        if (distance < 1) distance *= Math.PI;
-                        var drop = turtle.drop(distance/factor);
+                        if (distance < 1) distance += Math.PI;
+                        var drop = turtle.drop(distance);
                         drop.buffers = captured;
                         drop.collectable = true;  
                         drop.castShadow = true;
@@ -598,8 +610,8 @@
         },   
         init: {
             value: function(){
-
-                this.panner.refDistance = 40;
+                this.output.gain.value = 0.8;
+                this.panner.refDistance = 50;
                 this.panner.rolloffFactor = 2;
             }
         },
@@ -636,7 +648,7 @@
 
         this.output = userContext.createGainNode();
         this.input = userContext.createGainNode();   
-        this.rebuilder = userContext.createJavaScriptNode(4096, 1, 2);
+        this.rebuilder = userContext.createJavaScriptNode(2048, 1, 2);
         this.rebuilder.onaudioprocess = function(e) { if(!this.bufferData) self.rebuild(e)};
 
         this.input.connect(this.output);
@@ -649,7 +661,7 @@
         this.onIndexChange = properties.onIndexChange || this.defaults.onIndexChange.value;
         this.onError = properties.onError || this.defaults.onError.value;
 
-        this.han = this.generateHanning(4096);
+        this.han = this.generateHanning(2048);
         this.bufferData = properties.bufferData || this.defaults.bufferData.value;
         this.bufferIndex = 0;
 
@@ -708,7 +720,13 @@
                         var id = this.bufferIndex;
                         var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);   
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
-                        this.onIndexChange(this.bufferData[2][id]);
+                        var currSegment = this.bufferData[2][id];
+                        this.onIndexChange(currSegment);
+                        if(currSegment && currSegment.children.length > 0){
+                            for (var i = 0; i < currSegment.children.length; ++i){
+                                if(currSegment.children[i].constructor === Struct.Tree && currSegment.children[i].sound) currSegment.children[i].sound.play();
+                            }
+                        }
                         // console.log(this.bufferData[2][id].children)
 
                         for (var i = 0; i < left.length; ++i){   

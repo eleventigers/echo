@@ -7,10 +7,9 @@ Struct.Tree.prototype.removeChild = function(child){
 	if(child && this.children.length > 0){	
 		if(_.contains(this.children, child)){
 			this.remove(child);
-			if(!this.containsSegment()){ 
+			if(this.containsSegment() === 0){ 
 				this.removeSelf();
 			}
-
 		}
 	}
 };
@@ -25,9 +24,10 @@ Struct.Tree.prototype.removeSelf = function(){
 };
 
 Struct.Tree.prototype.containsSegment = function(){
+	var count = 0;
 	for (var i = 0; i < this.children.length; ++i){
-		if (this.children[i].constructor === Struct.Segment) return true;
+		if (this.children[i].constructor === Struct.Segment) ++count;
 	}
-	return false;
+	return count;
 };
 

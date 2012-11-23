@@ -3,6 +3,7 @@ Struct.Segment = function (geometry, material) {
 	this.geometry = geometry;
 	this.material = material;
 	this.geometry.computeBoundingSphere();
+	this.geometry.computeFaceNormals()
 	this.updateMatrixWorld();	
 	this.fading = false;
 	this.picking = false;
@@ -24,7 +25,9 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 		var opacity = self.material.opacity;
 		var pickings = [];
 		
-		var reduce = new TWEEN.Tween( self.scale ).to({x:0, y:0, z:0}, time).easing( TWEEN.Easing.Exponential.Out );
+		var reduce = new TWEEN.Tween( self.scale ).to({x:0, y:0, z:0}, time).easing( TWEEN.Easing.Exponential.Out ).onComplete(function(){
+			self.scale = origScale;
+		});
 		var fly = new TWEEN.Tween( self.position ).to( newPos, time / 1.1).easing( TWEEN.Easing.Quintic.Out );
 	    var fade = new TWEEN.Tween( opacity ).to( 0, time).easing( TWEEN.Easing.Linear.None );
 	        
@@ -34,34 +37,38 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 			
 			if(tree.constructor === Struct.Tree){
 				
-				var tree = tree;
-				//tree.sound.stop();
+				tree.sound.stop();
 				tree.remove(tree.sound);
 				tree.remove(tree.turtle);
-				for (var i = 0; i < tree.children.length; ++i){
-					if (tree.children[i].constructor != Struct.Segment) {
-						tree.remove(tree.children[i]);
-					}
-				}
+
 
 				if(tree.children.length > 0) pickSegment();
 			
 				function pickSegment(){
-					
-					tree.children[0].pickUp(self, 50, function(pick){
-						if (pick){
-							for(var n = 0; n < pick.length; ++n){
-								pickings.push(pick[n]);
-							}
-						}
+
+					if(!tree.children[0].pickUp){
+						tree.remove(tree.children[0]);
 						if(tree.children.length > 0) {
-							pickSegment();
-						} else {
-							
-							console.log("done?")	
-							onComplete(); 		
+								pickSegment();
 						}
-					});
+					} else {
+						tree.children[0].picking = false;
+						tree.children[0].pickUp(self, 50, function(pick){
+							console.log(pick)
+							if (pick){
+								for(var n = 0; n < pick.length; ++n){
+									pickings.push(pick[n]);
+								}
+							}
+							if(tree.children.length > 0) {
+								console.log("more", tree.children.length)
+								pickSegment();
+							} else {	
+								console.log("done?")	
+								onComplete(); 		
+							}
+						});
+					}	
 				}
 			} else {
 				
@@ -74,7 +81,14 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 			if (self.children.length != 0) {
 				pickTree(self.children[0], nextTree);
 			} else {
-				allTreesDone();
+				if(self === self.parent.children[3]){
+					pickTree(self.parent, function(){
+						callback(pickings);
+					});
+				}else{
+					allTreesDone();
+				}
+				
 			}					 	
 		}
 
@@ -95,15 +109,15 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 
 Struct.Segment.prototype.dance = function(time){
 
-	if (!this.fading){
+	if (!this.fading && !this.picking){
 		var self = this;
 		var time = (time) ? time : Math.log(self.buffers[0].length) * 100 + 300;
 		var material = self.material;
 		var pos = self.position;
 		var origPos = self.matrix.getPosition();
 		var factor = {x:1, y:1, z:1};
-		if (this.parent) factor = this.parent.parent.scale;
-		var randPos = origPos.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.4, Math.random()*2-4, Math.random()*0.2-0.4).divideSelf(factor));
+		if (this.parent) factor = this.parent.parent.boundRadiusScale;
+		var randPos = origPos.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.4, Math.random()*2-4, Math.random()*0.2-0.4).divideScalar(factor));
 
 		var rumble = new TWEEN.Tween( pos )
 					.to({x: randPos.x, y: randPos.y, z: randPos.z}, time / 2)
