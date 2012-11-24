@@ -24,9 +24,8 @@ normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
 turtleGeometry.applyMatrix(normalizationMatrix);
 turtleGeometry.computeBoundingSphere();
 
+// 
 
-
-//var arrow = new THREE.ArrowHelper(new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, 0 ));
 
 // Pointer lock
 var element = document.body;
@@ -144,7 +143,6 @@ defaultState.onRender = function(){
 		this.controls.update(Date.now() - TIME);
 		this.stats.update();
 		this.audio.listener.update(this.camera);
-
 		this.renderer.render( this.scene, this.camera );
 		TWEEN.update();	
 
@@ -188,33 +186,17 @@ defaultState.onActivation = function() {
 	this.scene.add(this.controls.getYaw());
 	this.audio = setupAudio();
 	this.stats = setupStats(container);
-	setupFloor(this);
-	//this.scene.add(arrow);
+	this.spawner = new Sim.Spawner({state:this});
+	this.loader = new Util.Loader({state:this});
 
-	if (this.audio){
+	setupFloor();
+
+	
 		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.wav", "/sounds/E2.wav"];
-		var freeSamples = ["19659", "45584", "15985"]
-		this.audio.buffers.loadFreesound(freeSamples, function(buffers){
-			for(var i = 0; i < buffers.length; ++i){
-				var test = new Struct.Tree();
-				var testsound = new self.audio.Sound3D();
-				test.add(testsound);
-			
-				var turtle = new Turtle(new THREE.Vector3(Math.random()*20-40, Math.random()*10-20, Math.random()*5-10), new THREE.Vector3(Math.random()*1-2, Math.random()*1, Math.random()*1-2), new THREE.Vector3(0, 1, 0), turtleMaterial, turtleGeometry, .1, self.playsects);
-
-				test.add(turtle);	
-
-				test.sound = testsound;
-				test.turtle = turtle;
-				
-				addToScene(test);
-				addToPlaysects(test);
-			
-				test.sound.play({buffer: buffers[i], sampleStart:0, sampleDuration:0, loop:true, building:true});
-				
-			}	
-		});
-	}
+		var free = ["19659", "45584", "15985"]
+		this.loader.load({sound:samples, freesound: free});
+		
+	
 }
 
 var stateMan = new StateManager(defaultState, document);
@@ -287,7 +269,7 @@ function setupScene(){
 
 
 function setupFloor(){
-	var geometry = new THREE.CubeGeometry( 50, 50, 50);
+	var geometry = new THREE.CubeGeometry( 50, 50, 5000);
 	geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
 	geometry.computeFaceNormals();
@@ -296,7 +278,7 @@ function setupFloor(){
 
 	material = new THREE.MeshPhongMaterial( { color: 0xcccccc, wireframe: false} );
 	var ground = new THREE.Mesh( geometry, material );
-	ground.position.y = -50;
+	ground.position.y = -2500;
 	ground.receiveShadow = true;
 
 	addToScene(ground);
@@ -340,7 +322,6 @@ function addToScene(object){
 function addToPlaysects(object){
 	stateMan.activeAppState.playsects.push(object);
 }
-
 
 
 function appendDrops(origin, direction) {

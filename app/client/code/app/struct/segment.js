@@ -61,18 +61,14 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 								}
 							}
 							if(tree.children.length > 0) {
-								console.log("more", tree.children.length)
 								pickSegment();
 							} else {	
-								console.log("done?")	
 								onComplete(); 		
 							}
 						});
 					}	
 				}
 			} else {
-				
-				console.log("no tree")
 				onComplete(); 
 			}
 		}
@@ -94,8 +90,8 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 
 		function allTreesDone(){
 			self.picking = true;
-			reduce.start();
 	    	fly.start();
+	    	reduce.start();
 	    	fade.onComplete(function(){
 	    		pickings.push(self);
 	    		self.picking = false;

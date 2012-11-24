@@ -72,7 +72,7 @@
                                   return;
                                 }
                                 store[filename] = buffer;
-                                callback(true, buffer);
+                                callback(buffer);
                             }
                         );
                     }
@@ -94,8 +94,11 @@
                         request.responseType = "arraybuffer";
                         request.send();
                         }, 
-                        function(){console.error("trace.js: error fetching Freesound resource: " + id);
-                    });
+                        function(){
+                            console.error("trace.js: error fetching Freesound resource: " + id);
+                            callback(false);
+                        }
+                    );
                     request.onload = function() {
                         userContext.decodeAudioData(
                             request.response,
@@ -109,11 +112,11 @@
                                     returnedSndInfo.getAnalysisFrames(function(analysis){
                                         buffer.meta.properties.analysis_frames = analysis;
                                         store[filename] = buffer;
-                                        callback(true, buffer);
+                                        callback(buffer);
                                     });
                                 } else {
                                     store[filename] = buffer;
-                                    callback(true, buffer);
+                                    callback(buffer);
                                 }          
                             }
                         );
@@ -139,64 +142,67 @@
                             }
                         }
                     },
-                    load: function(url, callback){
-                        if( Object.prototype.toString.call( url ) === '[object Array]' ){
-                            var count = 0;
-                            var i;
-                            var buffers = [];
-                            for (i = 0; i < url.length; ++i) {
-                                loadBuffer(url[i], function(status, buffer){
-                                    if (status){
-                                        ++count;
-                                        buffers.push(buffer);
-                                    } 
-                                    if (count === url.length) {
-                                        if (callback) callback(buffers);
-                                    }
-                                    if (count !== url.length && i === url.length-1) {
-                                        if (callback) callback(false);
-                                    }
-                                });                               
-                            }      
-                        } else {
-                            loadBuffer(url, function(status, buffer){
-                                if (status){
-                                    if (callback) callback(buffer);
-                                } else {
-                                     if (callback) callback(false);
-                                }
-                            });
+                    load: function(list, oncomplete, onprogress, onerror){
+
+                        var buffers = [];
+
+                        if( Object.prototype.toString.call( list ) === '[object Array]' ){  
+                            next(list, 0);        
+                        } else {     
+                            next([list], 0);
                         }
+
+                         function next(list, index){
+                            if(list.length > 0){
+                                loadBuffer(list[index], function(buffer){
+                                    if(buffer){
+                                        onprogress(list[index]);
+                                        buffers.push(buffer);   
+                                    } else {
+                                        onerror(list[index]);
+                                    }
+                                    if(index != list.length-1) {
+                                        next(list, index+1);
+                                    } else {
+                                        oncomplete(buffers);
+                                    }
+                                });     
+                            } else {
+                                console.error("trace.js: trying to load an empty list!")
+                            }   
+                        }
+                        
                     },
-                    loadFreesound : function(id, callback, analysis){
+                    loadFreesound : function(list, oncomplete, onprogress, onerror, analysis){
                         if (!freesound) return;
-                        if( Object.prototype.toString.call( id ) === '[object Array]' ){
-                            var count = 0;
-                            var i;
-                            var buffers = [];
-                            for (i = 0; i < id.length; ++i) {
-                                loadFreesoundBuffer(id[i], function(status, buffer){
-                                    if (status){
-                                        ++count;
-                                        buffers.push(buffer);
-                                    } 
-                                    if (count === id.length) {
-                                        if (callback) callback(buffers);
-                                    }
-                                    if (count !== id.length && i === id.length-1) {
-                                        if (callback) callback(false);
-                                    }
-                                }, analysis);                               
-                            }      
-                        } else {
-                            loadFreesoundBuffer(id, function(status, buffer){
-                                if (status){
-                                    if (callback) callback(buffer);
-                                } else {
-                                     if (callback) callback(false);
-                                }
-                            }, analysis);
+                        
+                        var buffers = [];
+
+                        if( Object.prototype.toString.call( list ) === '[object Array]' ){  
+                            next(list, 0);        
+                        } else {     
+                            next([list], 0);
                         }
+
+                        function next(list, index){
+                            if(list.length > 0){
+                                loadFreesoundBuffer(list[index], function(buffer){
+                                    if(buffer){
+                                        onprogress(list[index]);
+                                        buffers.push(buffer);   
+                                    } else {
+                                        onerror(list[index]);
+                                    }
+                                    if(index != list.length-1) {
+                                        next(list, index+1);
+                                    } else {
+                                        oncomplete(buffers);
+                                    }
+                                }, analysis);     
+                            } else {
+                                console.error("trace.js: trying to load an empty list!")
+                            }   
+                        }    
                     }
                 }
             })(); 
@@ -950,7 +956,7 @@
     });
  
     Trace.toString = Trace.prototype.toString = function () {
-        return "Trace " + version + " by eleventigers!";
+        return "Trace " + version + " by eleventigers";
     };
     (typeof define != "undefined" ? (define("Trace", [], function () {return Trace})) : window.Trace = Trace)
 	

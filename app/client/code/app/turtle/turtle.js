@@ -27,8 +27,6 @@ Turtle.prototype.constructor = Turtle;
 Turtle.prototype = new THREE.Object3D();
 Turtle.prototype.levels = function(){
 	var count = 0;
-	
-
 	function countLevels(parent) {
 		if(parent.parent) {
 			++count;	
@@ -37,9 +35,7 @@ Turtle.prototype.levels = function(){
 			return count;
 		}
 	}
-
-	return countLevels(this.parent);
-	
+	return countLevels(this.parent);	
 };
 
 Turtle.prototype.go = function(distance){
