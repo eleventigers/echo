@@ -10,37 +10,47 @@ Struct.Segment = function (geometry, material) {
 }
 
 Struct.Segment.prototype = new THREE.Mesh();
+
 Struct.Segment.prototype.constructor = Struct.Segment;
 
 Struct.Segment.prototype.pickUp = function(who, time, callback){
-	if(!this.picking && !this.fading && who && callback){
 
-		var callback = callback;
-		var who = who;
+	if(!this.picking){
+		var callback = callback || function(){};
 		var time = (time) ? time : 500;
 		var self = this;
 		var parent = this.parent;
 		var origScale = self.scale.clone();
-		var newPos = who.position;
+		var newPos = new THREE.Vector3(who.position.x, who.position.y+0.5, who.position.z);
+		console.log(newPos)
 		var opacity = self.material.opacity;
 		var pickings = [];
 		
-		var reduce = new TWEEN.Tween( self.scale ).to({x:0, y:0, z:0}, time).easing( TWEEN.Easing.Exponential.Out ).onComplete(function(){
-			self.scale = origScale;
-		});
-		var fly = new TWEEN.Tween( self.position ).to( newPos, time / 1.1).easing( TWEEN.Easing.Quintic.Out );
+		var reduce = new TWEEN.Tween( self.scale ).to({x:0, y:0, z:0.0001}, time).easing( TWEEN.Easing.Exponential.Out );
+		var fly = new TWEEN.Tween( self.position ).to( newPos, time).easing( TWEEN.Easing.Quintic.Out );
 	    var fade = new TWEEN.Tween( opacity ).to( 0, time).easing( TWEEN.Easing.Linear.None );
 	        
 	  	nextTree();
+
+		function nextTree(){	
+			if (self.children.length != 0) {
+				pickTree(self.children[0], nextTree);
+			} else {
+				if(self === self.parent.children[3]){
+					pickTree(self.parent, function(){
+						callback(pickings);
+					});
+				}else{
+					allTreesDone();
+				}	
+			}					 	
+		}
 
 		function pickTree(tree, onComplete){
 			
 			if(tree.constructor === Struct.Tree){
 				
-				tree.sound.stop();
-				tree.remove(tree.sound);
-				tree.remove(tree.turtle);
-
+				if(tree.sound) tree.sound.stop();
 
 				if(tree.children.length > 0) pickSegment();
 			
@@ -54,7 +64,6 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 					} else {
 						tree.children[0].picking = false;
 						tree.children[0].pickUp(self, 50, function(pick){
-							console.log(pick)
 							if (pick){
 								for(var n = 0; n < pick.length; ++n){
 									pickings.push(pick[n]);
@@ -73,41 +82,26 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 			}
 		}
 
-		function nextTree(){	
-			if (self.children.length != 0) {
-				pickTree(self.children[0], nextTree);
-			} else {
-				if(self === self.parent.children[3]){
-					pickTree(self.parent, function(){
-						callback(pickings);
-					});
-				}else{
-					allTreesDone();
-				}
-				
-			}					 	
-		}
-
 		function allTreesDone(){
 			self.picking = true;
-	    	fly.start();
-	    	reduce.start();
+			fly.start();
+			reduce.start();	
 	    	fade.onComplete(function(){
-	    		pickings.push(self);
 	    		self.picking = false;
+	    		pickings.push(self);	
 	    		parent.removeChild(self);
 	    		callback(pickings);	
 	    	}).start();
 		}				   	    	
-	}
-			
+	} 			
 };
 
-Struct.Segment.prototype.dance = function(time){
+Struct.Segment.prototype.dance = function(properties){
 
 	if (!this.fading && !this.picking){
+		var props = properties;
 		var self = this;
-		var time = (time) ? time : Math.log(self.buffers[0].length) * 100 + 300;
+		var time = Math.log(self.buffers[0].length) * 100 + 300;
 		var material = self.material;
 		var pos = self.position;
 		var origPos = self.matrix.getPosition();
@@ -129,6 +123,7 @@ Struct.Segment.prototype.dance = function(time){
 					.onComplete( function(){
 						material.wireframe = true;
 						self.fading = false;
+						if(props.suicide) self.removeSelf();
 					});
 					
 
@@ -136,4 +131,16 @@ Struct.Segment.prototype.dance = function(time){
 		rumble.start();
 	}		
 
+};
+
+Struct.Segment.prototype.removeSelf = function(){
+	if(!this.picking){
+		var self = this;
+		var shrink = new TWEEN.Tween( self.scale )
+		.to( {x:0, y:0, z:0}, 2000)
+		.easing( TWEEN.Easing.Linear.None )
+		.onComplete(function(){
+			if(!self.picking && self.parent) self.parent.removeChild(self);
+		}).start();
+	}
 };

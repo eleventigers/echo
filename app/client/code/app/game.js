@@ -9,67 +9,56 @@ var container = document.createElement('div');
 var stats;
 
 // Dimmensions for the Three renderer
-var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+var SCREEN_WIDTH = window.innerWidth+1, SCREEN_HEIGHT = window.innerHeight;
 
 // Global clock
 var TIME = Date.now();
 
-// Reusable geo and mat objects
+var GUI = (function(){
 
-var turtleMaterial = new THREE.MeshLambertMaterial();
-var turtleGeometry = new THREE.CubeGeometry(1.5, 1, 0.25);
-var normalizationMatrix = new THREE.Matrix4();
-normalizationMatrix.rotateX(Math.PI / 2);
-normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-turtleGeometry.applyMatrix(normalizationMatrix);
-turtleGeometry.computeBoundingSphere();
+	var element = document.body;
+	var blocker = document.getElementById( 'blocker' );
+	var instructions = document.getElementById( 'instructions' );
+	var collection = $('#collection p');
+	var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
-// 
-
-
-// Pointer lock
-var element = document.body;
-var blocker = document.getElementById( 'blocker' );
-var instructions = document.getElementById( 'instructions' );
-var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
-if(havePointerLock){
-	instructions.addEventListener( 'click', function ( event ) {
-		instructions.style.display = 'none';
-
-		// Ask the browser to lock the pointer
-		element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-
-		if ( /Firefox/i.test( navigator.userAgent ) ) {
-
-			var fullscreenchange = function ( event ) {
-
-				if ( document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element ) {
-
-					document.removeEventListener( 'fullscreenchange', fullscreenchange );
-					document.removeEventListener( 'mozfullscreenchange', fullscreenchange );
-
-					element.requestPointerLock();
-				}
-
-			}
-
-			document.addEventListener( 'fullscreenchange', fullscreenchange, false );
-			document.addEventListener( 'mozfullscreenchange', fullscreenchange, false );
-
-			element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
-			element.requestFullscreen();
-
-		} else {
-
+	if(havePointerLock){
+		instructions.addEventListener( 'click', function ( event ) {
+			element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
 			element.requestPointerLock();
+		}, false );
+	} else {
+		instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+	}	
 
+	return {
+		overlay: {
+			enable: function(enabled){
+				if(!enabled){
+					blocker.style.display = 'none';
+					instructions.style.display = 'none';
+				} else {
+					blocker.style.display = '-webkit-box';
+					blocker.style.display = '-moz-box';
+					blocker.style.display = 'box';
+					instructions.style.display = '';
+				}	
+			}
+		},
+		collection: {
+			points: 0,
+			update: function(points){
+				if(points != this.points){
+					this.points = points;
+					$(collection).html(points);
+				}
+					
+			}
 		}
+	}
 
-	}, false );
-} else {
-	instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+})();
 
-}	
 
 // State managing
 
@@ -105,13 +94,13 @@ defaultState.onMouseDown = function(event, x, y){
 				var intersects = ray.intersectObjects(this.playsects, true);
 				if(intersects.length > 0){
 					if(intersects[0].object.constructor === Struct.Segment){
-						var branch = appendDrops(new THREE.Vector3(0,0,0), intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.4, Math.random()*0.2-0.4, Math.random()*0.2-0.4)));
+						var branch = this.spawner.build(new THREE.Vector3(0,0,0), intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.4-0.2, Math.random()*0.8, Math.random()*0.4-0.2)).normalize());
 						intersects[0].object.add(branch);	
 						branch.sound.play({buffer: this.collected, loop:false, building:true});
 						this.collected = [];
 					} else {
 						if(intersects[0].distance <= 50){
-							var branch = appendDrops(intersects[0].point, intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.4, Math.random()*1-2, Math.random()*0.2-0.4)));
+							var branch = this.spawner.build(intersects[0].point, ray.direction.clone().negate().multiplySelf(new THREE.Vector3(-1, 1, -1)).normalize());
 							addToScene(branch);
 							addToPlaysects(branch);
 							branch.sound.play({buffer: this.collected, loop:true, building:true});
@@ -141,34 +130,36 @@ defaultState.onRender = function(){
 		this.collisions = detectCollision(this.playsects, this.controls);
 		this.controls.collUpdate(this.collisions);
 		this.controls.update(Date.now() - TIME);
-		this.stats.update();
-		this.audio.listener.update(this.camera);
+		//this.stats.update();
 		this.renderer.render( this.scene, this.camera );
-		TWEEN.update();	
-
+		GUI.collection.update(this.collected.length);
+				
 		if(this.stateManager.cursor.downLeft){
 
 		} 
 		if(this.stateManager.cursor.downRight){
-			if(this.counter === 1) collectDrops(this);
+			if(this.counter === 1) collectDrops();
 		}
 
 		TIME = Date.now();
 
 		if(this.counter == 3) this.counter = 0;
-	}	
+	}
+
+	TWEEN.update();
+	this.audio.listener.update(this.camera);
+	this.spawner.simulate();	
 };
 defaultState.onPointerLockChange = function(event) {
 			
-	if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
+	if ( document.pointerLockElement === document.body || document.mozPointerLockElement === document.body || document.webkitPointerLockElement === document.body ) {
 		this.running = true;
-		blocker.style.display = 'none';
+		this.audio.mixer.level(1);
+		GUI.overlay.enable(false);
 	} else {
 		this.running = false;
-		blocker.style.display = '-webkit-box';
-		blocker.style.display = '-moz-box';
-		blocker.style.display = 'box';
-		instructions.style.display = '';
+		this.audio.mixer.level(0);
+		GUI.overlay.enable(true);
 	}
 	
 };
@@ -178,23 +169,27 @@ defaultState.onPointerLockError = function(event) {
 defaultState.onActivation = function() {
 
 	var self = this;
-
+	this.level = new Level.Zero();
+	console.log(this.level);
 	this.renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
 	this.camera = setupCamera();
 	this.controls = setupControls(this.camera);
 	this.scene = setupScene();
 	this.scene.add(this.controls.getYaw());
 	this.audio = setupAudio();
-	this.stats = setupStats(container);
-	this.spawner = new Sim.Spawner({state:this});
+	this.audio.mixer.level(0);
+	//this.stats = setupStats(container);
 	this.loader = new Util.Loader({state:this});
-
+	this.spawner = new Sim.Spawner({state:self});
 	setupFloor();
 
-	
-		var samples = ["/sounds/flickburn.WAV", "/sounds/G1.wav", "/sounds/E2.wav"];
-		var free = ["19659", "45584", "15985"]
-		this.loader.load({sound:samples, freesound: free});
+	var samples = ["/sounds/hmpback1.wav", "/sounds/E2.wav", "/sounds/whaledeep.mp3"];
+	var free = ["19659", "45584", "15985"]
+
+	this.loader.load({sound:samples}, function(map, errors){
+		self.spawner.setBuffers(map.sound.cache);
+
+	});
 		
 	
 }
@@ -221,7 +216,7 @@ function setupRenderer(width, height, container) {
 function setupScene(){
 
 	var scene = new THREE.Scene();
-	scene.fog = new THREE.FogExp2( 0x121212, 0.002 );
+	scene.fog = new THREE.FogExp2( 0x121212, 0.001 );
 	//scene.fog.color.setHSV( 0.51, 0.6, 0.025 );
 
 	// Lights
@@ -267,6 +262,11 @@ function setupScene(){
 }
 
 
+var levelOne = {
+
+
+
+}
 
 function setupFloor(){
 	var geometry = new THREE.CubeGeometry( 50, 50, 5000);
@@ -324,19 +324,6 @@ function addToPlaysects(object){
 }
 
 
-function appendDrops(origin, direction) {
-
-	var turtle = new Turtle(origin, direction, new THREE.Vector3(0, 1, 0), turtleMaterial, turtleGeometry, .1, stateMan.activeAppState.playsects);
-	var tree = new Struct.Tree();
-	var sound = new stateMan.activeAppState.audio.Sound3D();
-	tree.add(turtle);
-	tree.turtle = turtle;
-	tree.add(sound);
-	tree.sound = sound;
-	
-	return tree;
-}
-
 function collectDrops(){
 
 	var ray = lookAndShoot(stateMan.activeAppState.controls);
@@ -346,7 +333,7 @@ function collectDrops(){
 	if (intersects.length > 0) {
 		var first = intersects[ 0 ];
 		var distance = first.distance;
-		if (distance >= 0 && distance <= 200) {
+		if (distance >= 0 && distance <= 1000) {
 			if(first.object.collectable){
 				first.object.pickUp(stateMan.activeAppState.controls.getYaw(), 500, function(pickings){
 					for(var i = 0; i < pickings.length; ++i){

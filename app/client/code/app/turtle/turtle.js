@@ -52,14 +52,13 @@ Turtle.prototype.drop = function(distance){
     distFact = (factor === 1) ? 1 : Math.log(factor) + 3 % factor;
     newPosition = new THREE.Vector3();
     newPosition.add(this.position, this.direction.clone().multiplyScalar(distance).divideSelf(this.parent.parent.scale));
-  	
-
+ 
     if (this.drawing) {
     	
         distance = this.position.distanceTo(newPosition);
 		mesh = new Struct.Segment(this.geometry, this.material);	
-		bottomRadius = this.width / this.parent.parent.boundRadiusScale  / factor / distFact;
-		topRadius = this.width  / this.parent.parent.boundRadiusScale / factor / distFact;
+		bottomRadius = this.width / this.parent.parent.boundRadiusScale  / factor ;
+		topRadius = this.width  / this.parent.parent.boundRadiusScale / factor ;
 		height = distance / distFact;
 		shearFactor = (topRadius - bottomRadius) / height ;
 		//shearFactor = 0;
@@ -74,8 +73,6 @@ Turtle.prototype.drop = function(distance){
 		lineGeo.vertices.push(newPosition);
 		line = new THREE.Line(lineGeo, this.lineMat);
 		this.parent.add(line);
-
-		//mesh.scale.divideSelf(this.parent.parent.scale);
     }
     this.position = newPosition;
     return mesh;
@@ -87,13 +84,9 @@ Turtle.prototype.shoot = function(){
 	
 		if (intersects.length > 0){
 			if (intersects[0].distance > 0 && intersects[0].distance < 100){
-				
 				var prevDir = this.direction.clone();
 				this.direction.crossSelf(intersects[0].object.position.clone().normalize());
 				(this.direction.isZero()) ? this.direction.copy(prevDir).negate() : this.direction;
-				if (intersects[0].object.parent) {
-					//if (intersects[0].object.parent.removeChild) intersects[0].object.parent.removeChild(intersects[0].object);
-				}
 			}			
 		}
 };

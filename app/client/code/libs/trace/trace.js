@@ -9,11 +9,31 @@
             userContext = context;
             userInstance = this;
             userMixer = userContext.createGainNode();
+            userMixerPost = userContext.createGainNode();
+            userMixerPost.gain.value = 0.1;
             userCompressor = userContext.createDynamicsCompressor();
             userCompressor.ratio.value = 20;
-            userCompressor.threshold.value = -30;
-            userMixer.connect(userCompressor);
+            userCompressor.threshold.value = -20;
+            userReverb = new this.ImpulseReverb();
+            userReverbWet = userContext.createGainNode();
+            userReverbWet.gain.value = 0.7;
+            userReverbWet.connect(userReverb.input);
+            userReverb.connect(userCompressor);
+
+            userMixer.connect(userReverbWet);
+            userMixer.connect(userMixerPost);
+            userMixerPost.connect(userCompressor);
+            
             userCompressor.connect(userContext.destination);
+
+            this.mixer = (function(){
+                return {
+                    level : function(value){
+                        if(!value && value > 1 || value < 0) return;
+                        userMixer.gain.value = value;
+                    }
+                }
+            })();
 
             ////////// Defining audio context listener, depends on THRE.js being present //////////
 
@@ -156,15 +176,15 @@
                             if(list.length > 0){
                                 loadBuffer(list[index], function(buffer){
                                     if(buffer){
-                                        onprogress(list[index]);
+                                        if(onprogress) onprogress(list[index]);
                                         buffers.push(buffer);   
                                     } else {
-                                        onerror(list[index]);
+                                        if(onerror) onerror(list[index]);
                                     }
                                     if(index != list.length-1) {
                                         next(list, index+1);
                                     } else {
-                                        oncomplete(buffers);
+                                       if(oncomplete) oncomplete(buffers);
                                     }
                                 });     
                             } else {
@@ -188,15 +208,15 @@
                             if(list.length > 0){
                                 loadFreesoundBuffer(list[index], function(buffer){
                                     if(buffer){
-                                        onprogress(list[index]);
+                                        if(onprogress) onprogress(list[index]);
                                         buffers.push(buffer);   
                                     } else {
-                                        onerror(list[index]);
+                                        if(onerror) onerror(list[index]);
                                     }
                                     if(index != list.length-1) {
                                         next(list, index+1);
                                     } else {
-                                        oncomplete(buffers);
+                                       if(oncomplete) oncomplete(buffers);
                                     }
                                 }, analysis);     
                             } else {
@@ -206,6 +226,10 @@
                     }
                 }
             })(); 
+
+            this.buffers.load('/sounds/41451__sandyrb__3auc-ir-close-003.wav', function(buffers){
+                userReverb.buffer = buffers[0];
+            });
 
             ////////// /////////     
         },
@@ -387,13 +411,17 @@
         this.panner = userContext.createPanner();
         this.output = userContext.createGainNode();
         this.analyser = new userInstance.Analyser();
+        this.builder = userContext.createJavaScriptNode(this.buildRate);
+        this.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
+        this.sampler = new userInstance.Sampler();
 
         this.input.connect(this.panner);;
         this.input.connect(this.analyser.input);
         
         this.panner.connect(this.output);
-        this.output.connect(userMixer); // destination might be a mixer later
 
+        this.panner.setPosition( this.position.x, this.position.y, this.position.z );
+        this.output.connect(userMixer);
              
         this.capturedBuffers = (function(){
             var left = [];
@@ -421,7 +449,7 @@
         traceName: {value: "Sound3D"},
         defaults: {
             value: {
-                buildRate: {value: 2048, automatable: false, type: INT},
+                buildRate: {value: 4096, automatable: false, type: INT},
                 building: {value: false, automatable:false, type:BOOLEAN},
                 loop: {value: false, automatable:false, type:BOOLEAN},
             }
@@ -445,49 +473,43 @@
                 if(value) {
                     this.building = value.building || false;
                     this.loop = value.loop || false;
-                }
-                    
-                function onSamplerStop(){
-                        self.stop();
-                        if(self.loop) self.play({buffer:self.drops, loop:true});              
+                    this.suicide = value.suicide || false;
                 }
 
+                function onSamplerStop(){
+                    self.stop();
+                    if(self.loop) self.play({buffer:self.drops, loop:true});              
+                }
+            
                 function onIndexChange(drop){
                    if(drop){
-                        drop.dance();
+                        drop.dance({suicide: self.suicide});
                         self.panPos(drop.matrixWorld.getPosition());
                    } 
                 }
-
+         
                 function onSamplerError(){
-                    console.log("boom");
+                    console.log("trace.js: boom ");
                     self.stop();
                     if(self.parent) self.parent.removeSelf();
                 }
 
                 function seqBuffs(value){
-                    var segments = self.buffCat(value);
-                    self.builder = userContext.createJavaScriptNode(self.buildRate);
-                    self.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
-                    self.sampler = new userInstance.Sampler({onStop: onSamplerStop, bufferData: segments, onIndexChange: onIndexChange, onError: onSamplerError}); 
+                    var segments = self.buffCat(value); 
                     self.sampler.connect(self.input);
                     self.input.connect(self.builder);
                     self.builder.connect(self.output);
-                    self.sampler.playData();
+                    self.sampler.playData({buffer: segments, onStop: onSamplerStop, onIndexChange: onIndexChange, onError: onSamplerError});
                 }
                 
                 function oneShot(value) {
-
-                    self.builder = userContext.createJavaScriptNode(self.buildRate);
-                    self.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
-                    self.sampler = new userInstance.Sampler({onStop: onSamplerStop});
                     var buffer =  value.buffer;
                     var start = value.sampleStart;
                     var duration = value.sampleDuration;
                     self.sampler.connect(self.input);
                     self.input.connect(self.builder);
                     self.builder.connect(self.output);
-                    if(buffer) self.sampler.play(buffer, start, duration);    
+                    if(buffer) self.sampler.play({buffer: buffer, start: start, duration: duration, onStop: onSamplerStop});    
                 }
 
                 if (!value){
@@ -509,16 +531,14 @@
             enumerable: true,
             value: function(){
                 if(this.sampler) {
-                    this.sampler.disconnect(this.input);
-                    this.sampler = null;
+                    this.sampler.disconnect(this.input);  
                 };
                 if(this.builder){
                     this.builder.disconnect(this.output);
-                    this.builder = null;
                 }
                 
             }
-        },
+        },             
         build: {
             value: function(e){
 
@@ -531,8 +551,9 @@
 
                 if(this.parent && this.parent.turtle){
 
+                    this.panPos(this.parent.turtle.matrixWorld.getPosition()); 
+
                     var angle = 0,
-                        turtle = this.parent.turtle,
                         analysis = this.analyser.analysis,
                         cent = 360  / analysis.centroid * analysis.loudness;
 
@@ -542,37 +563,35 @@
 
                     if (analysis.loudness > analysis.avgLoudness){
 
-                         
                         // turtle.push(); 
                         if (analysis.centroid < analysis.avgCentroid){
                              //if (turtle.stack.length>0) turtle.pop(); 
-                            cent /= -100 * Math.sin(analysis.loudness);
+                            cent /= -10 * Math.sin(analysis.loudness);
                             angle = cent * analysis.loudness;
                         }
 
-                        turtle.pitch(cent);
-                        turtle.yaw(angle);
-                       // turtle.roll(cent % 10);
+                        this.parent.turtle.pitch(cent);
+                        this.parent.turtle.yaw(angle);
                         var color = pitchToColor(freqToMidi(analysis.avgCentroid));
-                        if(color) turtle.setColor(color);
-                        var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI*2;
+                        if(color) this.parent.turtle.setColor(color);
+                        var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;
                         (width < 0) ? width *= -Math.PI : width = width;
                         if (width < 1) width += Math.PI;
-                        turtle.setWidth(width);
+                        this.parent.turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
-                        var distance = captured[0].length *  analysis.loudness / 3;
+                        var distance = captured[0].length +  analysis.loudness / 3;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
                         if (distance < 1) distance += Math.PI;
-                        var drop = turtle.drop(distance);
+                       
+                        var drop = this.parent.turtle.drop(distance);
                         drop.buffers = captured;
                         drop.collectable = true;  
                         drop.castShadow = true;
                         drop.material.wireframe = true;
                         this.parent.add(drop);
-                        drop.dance();
-
-                        this.panPos(turtle.matrixWorld.getPosition());
-                                    
+                        drop.dance({suicide: this.suicide});
+                           
+                             
                     }
 
                 }            
@@ -603,8 +622,10 @@
             value: function(value) {
                 var length = value.length;
                 var cat = [[],[],[]];
-                for (var i = 0; i < length; ++i){
-                     var seqBuffs = value[i].buffers;  
+                var seqBuffs = [];
+                var i;
+                for (i = 0; i < length; ++i){
+                     seqBuffs = value[i].buffers;  
                      for (var j = 0; j < seqBuffs[0].length; ++j){
                         cat[0].push(seqBuffs[0][j]);
                         cat[1].push(seqBuffs[1][j]);
@@ -652,26 +673,25 @@
 
         var self = this;
 
-        this.output = userContext.createGainNode();
-        this.input = userContext.createGainNode();   
-        this.rebuilder = userContext.createJavaScriptNode(2048, 1, 2);
-        this.rebuilder.onaudioprocess = function(e) { if(!this.bufferData) self.rebuild(e)};
-
-        this.input.connect(this.output);
 
         this.voices = [];
         this.voiceCount = 0;
         this.maxVoices = properties.maxVoices || this.defaults.maxVoices.value;
-
+        this.buildRate = properties.buildRate || this.defaults.buildRate.value;
         this.onStop = properties.onStop || this.defaults.onStop.value;
         this.onIndexChange = properties.onIndexChange || this.defaults.onIndexChange.value;
         this.onError = properties.onError || this.defaults.onError.value;
 
-        this.han = this.generateHanning(2048);
+        this.han = this.generateHanning(this.buildRate);
         this.bufferData = properties.bufferData || this.defaults.bufferData.value;
         this.bufferIndex = 0;
-
         this.playing = false;
+
+        this.output = userContext.createGainNode();
+        this.input = userContext.createGainNode();   
+        this.rebuilder = userContext.createJavaScriptNode(this.buildRate, 1, 2);
+        this.rebuilder.onaudioprocess = function(e) { if(!this.bufferData) self.rebuild(e)};
+        this.input.connect(this.output);
 
         this.initVoices();
 
@@ -684,15 +704,18 @@
                 onStop: {value: function(){}, automatable: false},
                 onIndexChange: {value: function(){}, automatable: false},
                 onError: { value: function(){}, automatable: false},
-                bufferData : {value: null, automatable: false}
+                bufferData : {value: [], automatable: false},
+                buildRate: {value: 4096, automatable:false, type: INT}
             }
         },
         play: {
             enumerable: true,
-            value: function(buffer, start, duration){      
+            value: function(params){
+                if(!params) return;      
                 var idle = this.idleVoices;
-                if(idle) {   
-                    this.voices[idle[0]].play(buffer, start, duration);
+                if(idle) {
+                    this.onStop = params.onStop;   
+                    this.voices[idle[0]].play(params.buffer, params.start, params.duration);
                     this.voiceCount += 1;
                     this.playing = true; 
                 } else {
@@ -701,7 +724,13 @@
             }
         },
         playData: {
-             value : function(){
+             value : function(params){
+                    if(!params) return;
+                    this.bufferIndex = 0;
+                    this.bufferData = params.buffer;
+                    this.onStop = params.onStop;
+                    this.onIndexChange = params.onIndexChange;
+                    this.onError = params.onError;
                     this.playing = true;
                     this.output.gain.setValueAtTime(0, userContext.currentTime);
                     this.output.gain.linearRampToValueAtTime(1, userContext.currentTime+0.15);
@@ -717,23 +746,22 @@
         },
         rebuild: {
             value: function(e){
-                    if (!this.bufferData[0]){
+                    if (!this.bufferData[0] || this.bufferData[0].length === 0){
                         this.rebuilder.disconnect(this.input);
                         this.onError();
                         return;
                     } else {
-                      
                         var id = this.bufferIndex;
                         var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);   
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
                         var currSegment = this.bufferData[2][id];
+
                         this.onIndexChange(currSegment);
                         if(currSegment && currSegment.children.length > 0){
                             for (var i = 0; i < currSegment.children.length; ++i){
                                 if(currSegment.children[i].constructor === Struct.Tree && currSegment.children[i].sound) currSegment.children[i].sound.play();
                             }
                         }
-                        // console.log(this.bufferData[2][id].children)
 
                         for (var i = 0; i < left.length; ++i){   
                             if(this.bufferData[0][id]) left[i] =  this.bufferData[0][id][i];
@@ -838,6 +866,8 @@
                     this.start = (start) ? start : 0;
                     this.duration = (duration) ? duration : this.source.buffer.duration;
                     this.source.start = userContext.currentTime; 
+                    this.output.gain.setValueAtTime(0, this.source.start);
+                    this.output.gain.linearRampToValueAtTime(1, this.source.start+0.1);
                     this.source.noteGrainOn(0, this.start, this.duration); 
                     this.playHead.connect(this.output);
                     this.source.connect(this.output);
@@ -872,6 +902,39 @@
     });
 
     //////////// //////////////
+
+    Trace.prototype.ImpulseReverb = function(properties){
+        if (!properties) {
+            properties = this.getDefaults();
+
+        }
+
+
+        this.input = userContext.createGainNode();
+        this.output = userContext.createGainNode();
+        this.wet = userContext.createGainNode()
+        this.convolver = userContext.createConvolver();
+
+        this.input.connect(this.convolver);
+        this.convolver.connect(this.wet);
+        this.wet.connect(this.output);
+
+    };
+
+    Trace.prototype.ImpulseReverb.prototype = Object.create(Super, {
+        traceName: {value: "ImpulseReverb"},
+        defaults: {
+            value: {
+                
+            }
+        },
+
+        buffer: {
+            set: function(buffer){
+                 if(buffer) this.convolver.buffer = buffer;
+            }
+        }
+    });
 
     Trace.prototype.Analyser = function(properties){
         if (!properties) {

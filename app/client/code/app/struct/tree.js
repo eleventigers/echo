@@ -5,8 +5,11 @@ Struct.Tree.prototype = new THREE.Object3D();
 Struct.Tree.prototype.constructor = Struct.Tree;
 Struct.Tree.prototype.removeChild = function(child){
 	if(child && this.children.length > 0){	
-		if(_.contains(this.children, child)){
+		if(_.contains(this.children, child)){	
+			var index = this.children.indexOf(child);
+			var line = this.children[index-1];
 			this.remove(child);
+			this.remove(line);
 			if(this.containsSegment() === 0){ 
 				this.removeSelf();
 			}
@@ -15,8 +18,10 @@ Struct.Tree.prototype.removeChild = function(child){
 };
 Struct.Tree.prototype.removeSelf = function(){
 	if(this.parent) {
+		this.sound = undefined;
+		this.turtle = undefined;
 		this.parent.remove(this);
-		console.log("suicide");
+		console.log("dead tree");	
 	} else {
 		console.log(this, "has no parent... :<");
 	}
