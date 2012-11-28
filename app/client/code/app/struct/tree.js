@@ -1,5 +1,7 @@
 Struct.Tree = function (parameters) {
 	THREE.Object3D.call(this);
+	this.collideWithPlayer = true;
+	this.collideWithDynamic = true;
 }
 Struct.Tree.prototype = new THREE.Object3D();
 Struct.Tree.prototype.constructor = Struct.Tree;
@@ -10,6 +12,13 @@ Struct.Tree.prototype.removeChild = function(child){
 			var line = this.children[index-1];
 			this.remove(child);
 			this.remove(line);
+			child.material.deallocate()
+			child.deallocate();
+			if(line){
+				line.material.deallocate();
+				line.geometry.deallocate();
+				line.deallocate();
+			}
 			if(this.containsSegment() === 0){ 
 				this.removeSelf();
 			}
@@ -18,9 +27,12 @@ Struct.Tree.prototype.removeChild = function(child){
 };
 Struct.Tree.prototype.removeSelf = function(){
 	if(this.parent) {
+		this.sound.removeSelf();
 		this.sound = undefined;
+		this.turtle.removeSelf();
 		this.turtle = undefined;
 		this.parent.remove(this);
+		this.deallocate();
 		console.log("dead tree");	
 	} else {
 		console.log(this, "has no parent... :<");

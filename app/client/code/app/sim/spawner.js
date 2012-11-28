@@ -11,8 +11,6 @@ Sim.Spawner = function(properties){
     this.state = properties.state;
     this.bounds = properties.bounds || this.defaults.bounds.value;
     this.time = properties.time || this.defaults.time.value;
-    this.material = properties.material || this.defaults.material.value();
-    this.geometry = properties.geometry || this.defaults.geometry.value();
     this.buffers = properties.buffers;
 
     this.position = new THREE.Vector3();
@@ -39,26 +37,10 @@ Sim.Spawner.prototype.defaults = {
 	},
 	time: {
 		value: {
-			min: 3000,
-			max: 10000,
+			min: 10000,
+			max: 20000,
 			last: 0,
 			frame: 5000
-		}
-	},
-	geometry: {
-		value: function(){
-			var turtleGeometry = new THREE.CubeGeometry(0.75, 1, 0.025);
-			var normalizationMatrix = new THREE.Matrix4();
-			normalizationMatrix.rotateX(Math.PI / 2);
-			normalizationMatrix.translate(new THREE.Vector3(0, -0.5, 0));
-			turtleGeometry.applyMatrix(normalizationMatrix);
-			turtleGeometry.computeBoundingSphere();
-			return turtleGeometry;
-		}
-	},
-	material: {
-		value : function(){	 
-			return new THREE.MeshLambertMaterial();
 		}
 	}
 };
@@ -80,8 +62,7 @@ Sim.Spawner.prototype.simulate = function(){
 			this.direction.y = (Math.random()*2-1);
 			this.direction.z = (Math.random()*2-1);
 			var newTree = this.build(this.position, this.direction);
-			this.state.scene.add(newTree);
-			this.state.playsects.push(newTree);
+			this.state.level.populateWith(newTree);
 			var buff = Math.floor(Math.random()*this.buffers.length);
 			newTree.sound.play({buffer: this.buffers[buff], loop: false, building: true, suicide: true});
 		}
@@ -94,7 +75,7 @@ Sim.Spawner.prototype.build = function(position, direction){
 	var dir = (!direction) ? new THREE.Vector3(Math.random()*2-1, Math.random()*1, Math.random()*2-1) : direction;
 	var tree = new Struct.Tree();
 	var sound = new this.state.audio.Sound3D();
-	var turtle = new Turtle(pos.clone(), dir.clone(), new THREE.Vector3(0, 1, 0), this.material, this.geometry, .1, this.state.playsects);
+	var turtle = new Turtle(pos.clone(), dir.clone(), new THREE.Vector3(0, 1, 0), this.state.level.reusable.material[0], this.state.level.reusable.geometry[1], .1, this.state.level.dynamic.collideWith);
 
 	tree.add(sound);
 	tree.add(turtle);	

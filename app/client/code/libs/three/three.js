@@ -15867,7 +15867,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 	this.deallocateObject = function ( object ) {
 
 		if ( ! object.__webglInit ) return;
-
+		
 		object.__webglInit = false;
 
 		delete object._modelViewMatrix;

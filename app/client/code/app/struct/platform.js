@@ -8,7 +8,11 @@ Struct.Platform = function () {
 	this.geometry.computeBoundingSphere();
 	this.geometry.computeVertexNormals();
 	this.geometry.computeFaceNormals();
-	this.updateMatrixWorld();	
+	this.updateMatrixWorld();
+	this.receiveShadow = true;	
+
+	this.collideWithPlayer = true;
+	this.collideWithDynamic = true;
 
 }
 

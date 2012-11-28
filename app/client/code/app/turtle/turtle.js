@@ -11,7 +11,6 @@ Turtle = function(position, direction, up, material, geometry, width, collide){
 	this.up = up;
 	this.material = material;
 	this.geometry = geometry;
-	
 	this.lineMat = new THREE.LineBasicMaterial();
 	this.width = width;
 	this.direction.normalize();
@@ -125,10 +124,12 @@ Turtle.prototype.setMaterial = function(material) {
   	this.material = material;
 };
 Turtle.prototype.setColor = function(hex) {
-  	return this.setMaterial(new THREE.MeshLambertMaterial({
-    	color: hex,
-    	ambient: hex
-  	}));
+
+	return this.setMaterial(new THREE.MeshLambertMaterial({
+		color: hex,
+		ambient: hex
+		}));
+	
 };
 Turtle.prototype.retrieveMeshes = function() {
 	var bottomRadius, distance, from, height, material, mesh, shearFactor, to, topRadius, turtleTransform, width, _i, _len, _ref, _ref2, _results;
@@ -168,6 +169,11 @@ Turtle.prototype.pop = function(){
 	this.width = state.width;
 	this.drawing = state.drawing;
 	return this;
+};
+
+Turtle.prototype.removeSelf = function(){
+    this.deallocate();
+	if(this.parent) this.parent.remove(this);             
 };
 
 Turtle.prototype.deg2rad = function(degrees) {

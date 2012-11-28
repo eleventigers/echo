@@ -1,6 +1,5 @@
 (function (window) {
-	var userContext,
-        userInstance,
+	var userContext, userInstance, userMixer, userCompressor, userReverb, userReverbPre
         Trace = function (context) {
             if (!context) {
                 context = window.webkitAudioContext && (new window.webkitAudioContext());
@@ -9,28 +8,26 @@
             userContext = context;
             userInstance = this;
             userMixer = userContext.createGainNode();
-            userMixerPost = userContext.createGainNode();
-            userMixerPost.gain.value = 0.1;
+            
             userCompressor = userContext.createDynamicsCompressor();
             userCompressor.ratio.value = 20;
             userCompressor.threshold.value = -20;
-            userReverb = new this.ImpulseReverb();
-            userReverbWet = userContext.createGainNode();
-            userReverbWet.gain.value = 0.7;
-            userReverbWet.connect(userReverb.input);
-            userReverb.connect(userCompressor);
 
-            userMixer.connect(userReverbWet);
-            userMixer.connect(userMixerPost);
-            userMixerPost.connect(userCompressor);
-            
+            userReverb = new userInstance.ImpulseReverb();
+            userReverbPre = userContext.createGainNode();
+            userReverbPre.connect(userReverb.input);
+            userReverb.connect(userCompressor);
+  
+            userMixer.connect(userCompressor);
             userCompressor.connect(userContext.destination);
 
             this.mixer = (function(){
                 return {
                     level : function(value){
                         if(!value && value > 1 || value < 0) return;
+                        value = (value === 0) ? 0.0001 : value;
                         userMixer.gain.value = value;
+                        userReverbPre.gain.value = value;
                     }
                 }
             })();
@@ -61,6 +58,9 @@
                                 userContext.listener.setOrientation( posFront.x, posFront.y, posFront.z, object.up.x, object.up.y, object.up.z );
                                 return true;
                             }
+                        },
+                        getPosition: function(){
+                            return posNew;
                         }
                     };
                 })();
@@ -410,6 +410,8 @@
         this.input = userContext.createGainNode();
         this.panner = userContext.createPanner();
         this.output = userContext.createGainNode();
+        this.send = userContext.createGainNode();
+
         this.analyser = new userInstance.Analyser();
         this.builder = userContext.createJavaScriptNode(this.buildRate);
         this.builder.onaudioprocess = function(e) {if(self.building) self.build(e)};
@@ -422,6 +424,8 @@
 
         this.panner.setPosition( this.position.x, this.position.y, this.position.z );
         this.output.connect(userMixer);
+        this.panner.connect(this.send);
+        this.send.connect(userReverbPre);
              
         this.capturedBuffers = (function(){
             var left = [];
@@ -460,7 +464,11 @@
                 this.position.copy( value );
                 this.posDelta.sub( this.position, this.oldPosition );
                 this.panner.setPosition( this.position.x, this.position.y, this.position.z );
-                this.panner.setVelocity( this.posDelta.x, this.posDelta.y, this.posDelta.z );       
+                this.panner.setVelocity( this.posDelta.x, this.posDelta.y, this.posDelta.z ); 
+                var toListener = this.position.distanceTo(userInstance.listener.getPosition());
+                var sendGain = Math.log(toListener);
+                this.send.gain.value = Math.min(1, sendGain/5);
+                this.output.gain.value = 1/sendGain*2;
             }
         },
         play: {
@@ -566,8 +574,9 @@
                         // turtle.push(); 
                         if (analysis.centroid < analysis.avgCentroid){
                              //if (turtle.stack.length>0) turtle.pop(); 
-                            cent /= -10 * Math.sin(analysis.loudness);
+                            cent /= -100 * Math.sin(analysis.loudness);
                             angle = cent * analysis.loudness;
+                            analysis.loudness;
                         }
 
                         this.parent.turtle.pitch(cent);
@@ -579,7 +588,7 @@
                         if (width < 1) width += Math.PI;
                         this.parent.turtle.setWidth(width);
                         var captured = this.capturedBuffers.get();
-                        var distance = captured[0].length +  analysis.loudness / 3;
+                        var distance = captured[0].length *  analysis.loudness / 3;
                         (distance < 0) ? distance *= -Math.PI : distance = distance;
                         if (distance < 1) distance += Math.PI;
                        
@@ -634,7 +643,13 @@
                 }
                 return cat;
             }
-        },   
+        }, 
+        removeSelf: {
+            value: function(){
+                this.deallocate();
+                if(this.parent) this.parent.remove(this);
+            }
+        },  
         init: {
             value: function(){
                 this.output.gain.value = 0.8;

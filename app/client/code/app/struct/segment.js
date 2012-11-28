@@ -22,7 +22,6 @@ Struct.Segment.prototype.pickUp = function(who, time, callback){
 		var parent = this.parent;
 		var origScale = self.scale.clone();
 		var newPos = new THREE.Vector3(who.position.x, who.position.y+0.5, who.position.z);
-		console.log(newPos)
 		var opacity = self.material.opacity;
 		var pickings = [];
 		
