@@ -132,15 +132,6 @@ StateManager = function (init_state, canvas_object) {
 	*/
 }
 
-StateManager.prototype.onLoop = function () {
-	if (typeof activeAppState != undefined)
-		this.activeAppState.onLoop();
-}
-
-StateManager.prototype.onRender = function () {
-	if (typeof activeAppState != undefined)
-		this.activeAppState.onRender();
-}
 
 StateManager.prototype.setActiveAppState = function (state) {
 	if (typeof state != undefined) {
@@ -152,4 +143,4 @@ StateManager.prototype.setActiveAppState = function (state) {
 	} else {
 		console.log("ERROR: Trying to set a state that was undefined");
 	}
-}
+};

@@ -2,20 +2,20 @@
  * @author eleventigers / http://jokubasdargis.com/
  */
 
-Util.Loader = function(assets){
+Util.Loader = function(properties){
 
 	var self = this;
-	this.state = assets.state || null;
+	this.audio = properties.audio || null;
 	this.map = {
 		sound: {
 			loader: function (list, oncomplete, onprogress, onerror){
-				if(self.state.audio) self.state.audio.buffers.load(list, oncomplete, onprogress, onerror); 	
+				if(self.audio) self.audio.buffers.load(list, oncomplete, onprogress, onerror); 	
 			},
 			cache: []
 		},
 		freesound: {
 			loader: function (list, oncomplete, onprogress, onerror){
-				if(self.state.audio) self.state.audio.buffers.loadFreesound(list, oncomplete, onprogress, onerror); 	
+				if(self.audio) self.audio.buffers.loadFreesound(list, oncomplete, onprogress, onerror); 	
 			},
 			cache: []
 		}
@@ -24,11 +24,16 @@ Util.Loader = function(assets){
 
 Util.Loader.prototype.constructor = Util.Loader;
 
-Util.Loader.prototype.load = function(assets, oncomplete) {
+Util.Loader.prototype.get = function(cat){
+	if(!cat || !this.map.hasOwnProperty(cat)) return this.map;
+	return this.map[cat].cache;
+};
 
-	if(this.state){
+Util.Loader.prototype.load = function(assets, oncomplete, onprogress, onerror) {
+
+	if(this.audio){
+
 		var self = this;
-		// how many files to load and what categories
 		var toLoad = 0;
 		var errors  = 0;
 		var cats = [];
@@ -57,17 +62,19 @@ Util.Loader.prototype.load = function(assets, oncomplete) {
 
 		function progress(file){
 			--toLoad;
+			if(onprogress) onprogress(file, toLoad);
 			console.log(self+" loaded "+file, toLoad+" left to load...");
 		}
 
 		function error(file){
 			--toLoad;
 			++errors;
+			if(onerror) onerror(file);
 			console.error(self+" can't load "+file);
 		}
 
 		function complete(){
-			if(oncomplete) oncomplete(self.map);
+			if(oncomplete) oncomplete(self.map, errors);
 		}
 
 		function loadCat(index, allCats){
@@ -91,7 +98,7 @@ Util.Loader.prototype.load = function(assets, oncomplete) {
 		}
 
 	} else {
-		console.log(this+" can't load to a game state of "+this.state);
+		console.log(this+" can't load to a game audio of "+this.audio);
 	}
 
 };

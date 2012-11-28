@@ -10,13 +10,13 @@
       }
 
       body {
-        background-color: #000000;
+        background-color: #111111;
         margin: 0;
         overflow: hidden;
         font-family: arial;
       }
 
-      #blocker {
+      #menu {
 
         position: absolute;
         width: 100%;
@@ -42,14 +42,16 @@
 
       }
 
-      #instructions {
+      #tagline {
+     
         color: #ffffff;
         text-align: center;
         cursor: pointer;
 
       }
 
-      #collection { 
+      #collection {
+        display: none; 
         position:absolute;
         width:2%;
         margin-left: 1%;
@@ -75,20 +77,44 @@
         background-image: url(/images/noun_project_6000.png);
         background-repeat: no-repeat;
       }
+      #loader {
+        position: absolute;
+        margin-left:50%;
+        margin-top:60%;  
+      }
       
     </style>
   </head>
   <body>
-    <div id="blocker">
-      <div id="instructions">
-        <span style="font-size:20pt">&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>
-        <br />
-       
+    <div id="menu">
+      <div id="tagline">
+        <span style="font-size:20pt">&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
       </div>
     </div>
     <div id="collection">  
       <div id="wave"></div>
       <p> 0 </p>
+    </div>
+
+    <div id="loader">
+      <div id="floatingCirclesG">
+      <div class="f_circleG" id="frotateG_01">
+      </div>
+      <div class="f_circleG" id="frotateG_02">
+      </div>
+      <div class="f_circleG" id="frotateG_03">
+      </div>
+      <div class="f_circleG" id="frotateG_04">
+      </div>
+      <div class="f_circleG" id="frotateG_05">
+      </div>
+      <div class="f_circleG" id="frotateG_06">
+      </div>
+      <div class="f_circleG" id="frotateG_07">
+      </div>
+      <div class="f_circleG" id="frotateG_08">
+      </div>
+      </div>
     </div>
   </body>
 </html>

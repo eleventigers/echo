@@ -1,6 +1,5 @@
 exports.init = function() {
-	stateMan.setActiveAppState(defaultState);
-	animate();	
+	stateMan.setActiveAppState(initState);	
 }
 
 // DOM elements for the game
@@ -15,52 +14,115 @@ var SCREEN_WIDTH = window.innerWidth+1, SCREEN_HEIGHT = window.innerHeight;
 var TIME = Date.now();
 
 var GUI = (function(){
-
-	var element = document.body;
-	var blocker = document.getElementById( 'blocker' );
-	var instructions = document.getElementById( 'instructions' );
-	var collection = $('#collection p');
+	var body = document.body;
+	var doc = document;
+	var menu = $('#menu');
+	var tagline = $('#tagline' );
 	var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
 	if(havePointerLock){
-		instructions.addEventListener( 'click', function ( event ) {
-			element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-			element.requestPointerLock();
-		}, false );
+
+		body.requestPointerLock = body.requestPointerLock || body.mozRequestPointerLock || body.webkitRequestPointerLock;
+		doc.exitPointerLock = doc.exitPointerLock || doc.mozExitPointerLock || doc.webkitExitPointerLock;
+
+		// tagline.addEventListener( 'click', function ( event ) {
+		// 	body.requestPointerLock();
+		// }, false );
+
 	} else {
-		instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+		tagline.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
 	}	
 
 	return {
 		overlay: {
-			enable: function(enabled){
+			enable: function(enabled, text){
 				if(!enabled){
-					blocker.style.display = 'none';
-					instructions.style.display = 'none';
+					menu.style.display = 'none';
+					tagline.style.display = 'none';
 				} else {
-					blocker.style.display = '-webkit-box';
-					blocker.style.display = '-moz-box';
-					blocker.style.display = 'box';
-					instructions.style.display = '';
+					menu.style.display = '-webkit-box';
+					menu.style.display = '-moz-box';
+					menu.style.display = 'box';
+					tagline.style.display = '';
+					if (text) tagline.innerHTML = text;
 				}	
 			}
+		},
+		tagline: {
+			enable: function(enabled){
+				if(!enabled){
+					$("#tagline").hide();
+				} else {
+					$("#tagline").show();
+				}
+			}
+
 		},
 		collection: {
 			points: 0,
 			update: function(points){
 				if(points != this.points){
 					this.points = points;
-					$(collection).html(points);
+					$("#collection p").html(points);
+				}		
+			},
+			enable: function(enabled){
+				if(!enabled){
+					$("#collection").hide();
+				} else {
+					$("#collection").show();
 				}
-					
+			}
+		},
+		pointer: {
+			lock: function(enabled){
+				if(enabled){
+					body.requestPointerLock();
+				} else {
+					doc.exitPointerLock();
+				}
+				
+			}
+		},
+		loader: {
+			enable: function(enabled){
+				if(!enabled){
+					$("#loader").hide();
+				} else {
+					$("#loader").show();
+				}
+			},
+			update: function(percent, text){
+				//$(".spinner").animate({}, 100)
 			}
 		}
 	}
 
 })();
 
+var renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
+var camera = setupCamera();
+var controls = setupControls(camera);
+var trace = setupAudio();
+var loader = new Util.Loader({audio:trace});
 
-// State managing
+
+
+// APPLICATION LOAD STATE //
+
+var initState = new GameState();
+
+initState.onActivation = function() {
+	GUI.collection.enable(true);
+	GUI.loader.enable(true);
+	var samples = ["/sounds/hmpback1.wav", "/sounds/flickburn.WAV", "/sounds/woodoverblade.wav"];
+	loader.load({sound:samples}, function(map, errors){
+		GUI.loader.enable(false);
+	});
+
+};
+
+// MAIN GAME STATE //
 
 var defaultState = new GameState();
 
@@ -87,9 +149,7 @@ defaultState.onMouseDown = function(event, x, y){
 		event.preventDefault();
 		
 		if(event.button === 0){
-	
 			if(this.level.player.collected.length > 0){
-
 				var ray = lookAndShoot(this.controls);
 				var intersects = ray.intersectObjects(this.level.player.collideWith, true);
 				if(intersects.length > 0){
@@ -99,7 +159,7 @@ defaultState.onMouseDown = function(event, x, y){
 							var l = obj.parent.children.length;
 							if(obj === obj.parent.children[3] || obj === obj.parent.children[l-1]){
 								obj.parent.turtle.position.copy(obj.position);
-								obj.parent.turtle.direction.copy(intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.4-0.2, Math.random()*0.9, Math.random()*0.4-0.2)).normalize());
+								obj.parent.turtle.direction.copy(intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.1, Math.random()*0.9, Math.random()*0.2-0.1)).normalize());
 								obj.parent.sound.play({buffer: this.level.player.collected, loop:true, building:true});
 								this.level.player.collected = [];	
 							} else {
@@ -124,8 +184,7 @@ defaultState.onMouseDown = function(event, x, y){
 				} 
 			}		
 			
-		}	
-		
+		}		
 	}
 };
 defaultState.onResize = function () {
@@ -137,75 +196,91 @@ defaultState.onResize = function () {
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
 	}		
 };
+
+defaultState.onRestart = function(){
+
+	this.level.spawnPlayer();
+
+};
+
+defaultState.onPause = function(){
+	this.running = false;
+	this.audio.mixer.level(0);
+	GUI.overlay.enable(true);
+	GUI.collection.enable(false);
+};
+
+defaultState.onResume = function(){
+	this.running = true;
+	this.audio.mixer.level(1);
+	GUI.overlay.enable(false);
+	GUI.collection.enable(true);
+};
+
+defaultState.onFail = function(){
+
+	this.running = false;
+	GUI.pointer.lock(false);
+	this.restart();
+
+};
+
 defaultState.onRender = function(){
 	if (this.running){
-		++this.counter;
-		this.collisions = detectCollision(this.level.player.collideWith, this.controls);
-		this.controls.collUpdate(this.collisions);
+		this.controls.collUpdate(detectCollision(this.level.player.collideWith, this.controls));
 		this.controls.update(Date.now() - TIME);
 		this.spawner.simulate();
 		TWEEN.update();
 		this.audio.listener.update(this.camera);
-		this.stats.update();
-		this.renderer.render( this.level, this.camera );
+		//this.stats.update();
 		GUI.collection.update(this.level.player.collected.length);
-				
-		if(this.stateManager.cursor.downLeft){
-
-		} 
+		
 		if(this.stateManager.cursor.downRight){
-			if(this.counter === 1) collectDrops();
+			if(TIME % 3 === 0) collectDrops(this);
 		}
 
+		if(TIME % 9 === 0) {
+			var fail = this.level.testConditions("failures");
+			if(fail.length > 0 && fail[0] === true){
+				this.fail();
+			}
+		}
+
+		this.renderer.render( this.level, this.camera );
+
 		TIME = Date.now();
-
-		if(this.counter == 3) this.counter = 0;
-	}
-
-	
-	
+	}		
 };
-defaultState.onPointerLockChange = function(event) {
-			
+defaultState.onPointerLockChange = function(event) {			
 	if ( document.pointerLockElement === document.body || document.mozPointerLockElement === document.body || document.webkitPointerLockElement === document.body ) {
-		this.running = true;
-		this.audio.mixer.level(1);
-		GUI.overlay.enable(false);
+
+		this.resume();
+		
 	} else {
-		this.running = false;
-		this.audio.mixer.level(0);
-		GUI.overlay.enable(true);
-	}
-	
+
+		this.pause();
+	}	
 };
 defaultState.onPointerLockError = function(event) {
-	instructions.style.display = '';
+	tagline.style.display = '';
 };
+
 defaultState.onActivation = function() {
 
 	var self = this;
-	this.renderer = setupRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, container);
-	this.camera = setupCamera();
-	this.controls = setupControls(this.camera);
+	this.renderer = renderer;
+	this.camera = camera;
+	this.controls = controls;
 	this.level = new Level.Zero({renderer: this.renderer});
 	this.level.setPlayer(this.controls.getYaw());
 	this.level.spawnPlayer();
-	this.audio = setupAudio();
+	this.audio = trace;
 	this.audio.mixer.level(0);
-	this.stats = setupStats(container);
-	this.loader = new Util.Loader({state:this});
-	this.spawner = new Sim.Spawner({state:self});
-
-	var samples = ["/sounds/hmpback1.wav", "/sounds/flickburn.WAV", "/sounds/woodoverblade.wav"];
-	var free = ["19659", "45584", "15985"]
-
-	this.loader.load({sound:samples}, function(map, errors){
-		self.spawner.setBuffers(map.sound.cache);
-
-	});
-		
+	this.loader = loader;
+	this.spawner = new Sim.Spawner({state:this});
+	animate();	
 	
-}
+};
 
 var stateMan = new StateManager(defaultState, document);
 
@@ -214,13 +289,14 @@ var stateMan = new StateManager(defaultState, document);
 ////
 
 function setupRenderer(width, height, container) {
-	var renderer = new THREE.WebGLRenderer( { alpha:true, antialias: true } );
+	var renderer = new THREE.WebGLRenderer( { alpha:false, antialias: true } );
 	renderer.setSize( width, height );
-	renderer.setClearColorHex(  0x121212, 1);
+	renderer.setClearColorHex(  0x111111, 1);
 	renderer.shadowMapEnabled = true;
 	renderer.shadowMapSoft = true;
-	renderer.gammaInput = true;
-	renderer.gammaOutput = true;
+	renderer.stencil = false;
+	// renderer.gammaInput = true;
+	// renderer.gammaOutput = true;
 	renderer.physicallyBasedShading = true;
 	container.appendChild(renderer.domElement);
 	return renderer;
@@ -233,7 +309,7 @@ function setupAudio(listener){
 }
 
 function setupCamera(){
-	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 50000 );
+	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 300000 );
 }
 
 
@@ -250,33 +326,30 @@ function setupStats(container) {
 	return stats;
 }
 
-function collectDrops(){
+function collectDrops(state){
 
-	var ray = lookAndShoot(stateMan.activeAppState.controls);
+	var ray = lookAndShoot(state.controls);
 	ray.precision = 0.000001;
-	var intersects = ray.intersectObjects(stateMan.activeAppState.level.player.collideWith, true);
+	var intersects = ray.intersectObjects(state.level.player.collideWith, true);
 
 	if (intersects.length > 0) {
 		var first = intersects[ 0 ];
 		var distance = first.distance;
 		if (distance >= 0 && distance <= 1000) {
 			if(first.object.collectable){
-				first.object.pickUp(stateMan.activeAppState.controls.getYaw(), 500, function(pickings){
+				first.object.pickUp(state.controls.getYaw(), 500, function(pickings){
 					for(var i = 0; i < pickings.length; ++i){
 						pickings[i].collectable = false;
-						stateMan.activeAppState.level.player.collected.push(pickings[i]);
+						state.level.player.collected.push(pickings[i]);
 					}	
 				});		
 			}
 		}	
 	} 
-
 }
 
 function lookAndShoot (controls){
-
 	if (!controls) return;
-
 	var bound = controls.getYaw().boundRadiusScale;
 	var pos = controls.getYaw().position.clone();
 	var pitch = controls.getPitch().rotation.clone();
@@ -284,11 +357,8 @@ function lookAndShoot (controls){
 	var frontVertex =  vertices[3].clone().addSelf(vertices[4].clone());
 	var globalVertex = controls.getYaw().matrixWorld.multiplyVector3(frontVertex);
 	var directionVector = globalVertex.subSelf( pos );
-
 	return new THREE.Ray( pos, directionVector.normalize().setY(pitch.x));
-
 }
-
 
 function detectCollision(collidees, collider) {
 
@@ -344,7 +414,7 @@ function detectCollision(collidees, collider) {
 
 function animate() {
 	requestAnimationFrame(animate);
-	stateMan.onRender();
+	stateMan.activeAppState.render();
 }
 
 

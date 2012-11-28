@@ -1,6 +1,7 @@
 Level = function(properties){
 	THREE.Scene.call(this);
-	this.objectives = [];	
+	this.objectives = [];
+	this.failures = [];	
 }
 Level.prototype = new THREE.Scene(); 
 
@@ -9,23 +10,27 @@ Level.prototype.setPlayer = function(player){
 		this.player.mesh = player;
 	}
 };
-Level.prototype.testObjectives = function(){
-	var l = this.objectives.length;
-	var res = [];
-	var obj;
-	if(l > 0){
-		for (var i = 0; i < l; ++i){
-			obj = this.objectives[i]
-			res.push(obj());
+Level.prototype.testConditions = function(topic){
+	if(!topic) return;
+	if(this.hasOwnProperty(topic)){
+		var l = this[topic].length;
+		var res = [];
+		var func;
+		if(l > 0){
+			for (var i = 0; i < l; ++i){
+				func = this[topic][i];
+				res.push(func());
+			}
+			return res;
+		} else {
+			return false;
 		}
-		return res;
-	} else {
-		return false;
-	}
+	}	
 };
 Level.prototype.spawnPlayer = function(){
 	this.player.mesh.position.set(this.entry.point.x, this.entry.point.y, this.entry.point.z);
-	this.add(this.player.mesh);
+	var index = this.children.indexOf(this.player.mesh);
+	if( index === -1) this.add(this.player.mesh);
 };
 Level.prototype.populateWith = function(list){
 	var self = this;

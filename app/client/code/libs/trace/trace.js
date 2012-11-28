@@ -563,24 +563,27 @@
 
                     var angle = 0,
                         analysis = this.analyser.analysis,
-                        cent = 360  / analysis.centroid * analysis.loudness;
+                        cent = 360  / analysis.centroid * analysis.loudness / 2;
 
                     if (!isFinite(cent)){
                         cent = 0;
                     }
 
                     if (analysis.loudness > analysis.avgLoudness){
-
+                        if (analysis.centroid > analysis.avgCentroid){
+                            cent *= Math.sin(cent)*Math.log(analysis.loudness);
+                        }
                         // turtle.push(); 
-                        if (analysis.centroid < analysis.avgCentroid){
+                        if (analysis.centroid <= analysis.avgCentroid){
                              //if (turtle.stack.length>0) turtle.pop(); 
-                            cent /= -100 * Math.sin(analysis.loudness);
+                            cent /= 100 * Math.sin(analysis.loudness);
                             angle = cent * analysis.loudness;
                             analysis.loudness;
                         }
 
                         this.parent.turtle.pitch(cent);
                         this.parent.turtle.yaw(angle);
+                        // this.parent.turtle.roll(angle);
                         var color = pitchToColor(freqToMidi(analysis.avgCentroid));
                         if(color) this.parent.turtle.setColor(color);
                         var width = Math.log(analysis.loudness)*Math.sin(cent)*Math.PI;

@@ -34,6 +34,18 @@ GameState = function () {
 	// Fired on pointer lock error
 	this.onPointerLockError = null;
 
+	// Events on game pause
+	this.onPause = null;
+
+	// 
+	this.onResume = null;
+
+	// When game restarts
+	this.onRestart = null;
+
+	// When game player fails
+	this.onFail = null;
+
 	// Custom controls object
 	this.controls = null;
 
@@ -41,7 +53,7 @@ GameState = function () {
 	this.renderer = null;
 
 	// THREE.js scene
-	this.scene = null;
+	this.level = null;
 
 	// THREE.js camera
 	this.camera = null;
@@ -55,14 +67,9 @@ GameState = function () {
 	// Called when this state is set active
 	this.onActivation = null;
 
-	// Collected items
-	this.collected = [];
+	// Spawner
+	this.spawner = null;
 
-	//
-	this.counter = 0;
-
-	//Player collidees
-	this.playsects = [];
 
 }
 
@@ -70,4 +77,30 @@ GameState.prototype.constructor = GameState;
 
 GameState.prototype.setStateManager = function (state_manager) {
 	this.stateManager = state_manager;
+};
+
+GameState.prototype.loop = function () {
+	
+	if(typeof this.onLoop === 'function') this.onLoop();
+}
+
+GameState.prototype.render = function () {
+	
+	if(typeof this.onRender === 'function') this.onRender();
+}
+
+GameState.prototype.pause = function(){
+	if(typeof this.onPause === 'function') this.onPause();
+};
+
+GameState.prototype.resume = function(){
+	if(typeof this.onResume === 'function') this.onResume();
+};
+
+GameState.prototype.restart = function(){
+	if(typeof this.onRestart === 'function') this.onRestart();
+};
+
+GameState.prototype.fail = function(){
+	if(typeof this.onFail === 'function') this.onFail();
 };
