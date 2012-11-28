@@ -1,4 +1,4 @@
-Here at GitHub, we're no strangers to hosting or sponsoring hackathons. With the growing number of games and game development resources on GitHub, we thought it was about time to throw our very own game jam!
+Build for the Github Game Off 2012, **Echo** is a game where you collect, recycle and destroy sounds while trying to reach a point in distance.
 
 ## The Challenge
 
