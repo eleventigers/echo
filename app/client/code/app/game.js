@@ -34,7 +34,7 @@ var GUI = (function(){
 	}	
 
 	return {
-		overlay: {
+		menu: {
 			enable: function(enabled, text){
 				if(!enabled){
 					menu.style.display = 'none';
@@ -46,17 +46,16 @@ var GUI = (function(){
 					tagline.style.display = '';
 					if (text) tagline.innerHTML = text;
 				}	
-			}
-		},
-		tagline: {
-			enable: function(enabled){
-				if(!enabled){
-					$("#tagline").hide();
-				} else {
-					$("#tagline").show();
+			},
+			tagline: {
+				enable: function(enabled){
+					if(!enabled){
+						$("#tagline").hide();
+					} else {
+						$("#tagline").show();
+					}
 				}
 			}
-
 		},
 		collection: {
 			points: 0,
@@ -113,7 +112,7 @@ var loader = new Util.Loader({audio:trace});
 var initState = new GameState();
 
 initState.onActivation = function() {
-	GUI.collection.enable(true);
+
 	GUI.loader.enable(true);
 	var samples = ["/sounds/hmpback1.wav", "/sounds/flickburn.WAV", "/sounds/woodoverblade.wav"];
 	loader.load({sound:samples}, function(map, errors){
@@ -206,14 +205,14 @@ defaultState.onRestart = function(){
 defaultState.onPause = function(){
 	this.running = false;
 	this.audio.mixer.level(0);
-	GUI.overlay.enable(true);
+	GUI.menu.enable(true);
 	GUI.collection.enable(false);
 };
 
 defaultState.onResume = function(){
 	this.running = true;
 	this.audio.mixer.level(1);
-	GUI.overlay.enable(false);
+	GUI.menu.enable(false);
 	GUI.collection.enable(true);
 };
 
