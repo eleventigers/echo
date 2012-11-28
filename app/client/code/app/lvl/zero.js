@@ -27,9 +27,14 @@ Level.Zero = function(properties){
 			new THREE.CubeGeometry(1, 1, 1)
 		],
 		material:[
-			new THREE.MeshLambertMaterial({ color: 0xffffff, ambient: 0xffffff }), 
+			new THREE.MeshLambertMaterial({ color: 0xffffff, ambient: 0xffffff }),
+			new THREE.MeshLambertMaterial({ color: 0xcccccc, ambient: 0x96cde6 }) 
 		]
 	};
+
+	this.reusable.material[1].opacity = 0.1;
+	this.reusable.material[1].transparent = true;
+	this.reusable.material[1].receiveShadow = true;
 
 	this.normalizationMatrix = new THREE.Matrix4();
 	this.normalizationMatrix.rotateX(Math.PI / 2);
@@ -39,7 +44,7 @@ Level.Zero = function(properties){
 	this.reusable.geometry[1].computeBoundingSphere();
 	this.reusable.geometry[2].computeBoundingSphere();
 
-	this.fog = new THREE.FogExp2( 0x121212, 0.0005 );
+	this.fog = new THREE.FogExp2( 0x000000, 0.0005 );
 
 	this.static = {
 		objects: [
@@ -81,37 +86,76 @@ Level.Zero = function(properties){
 	};
 
 	this.populateWith(this.static.objects);
-	this.populateWith(this.generateTerrain());
+	this.populateWith(this.generateClouds());
 }
 
 Level.Zero.prototype = new Level();
 
-Level.Zero.prototype.generateTerrain = function(){
+Level.Zero.prototype.updateClouds = function(){
+
+}
+
+Level.Zero.prototype.generateClouds = function(){
 	var self = this;
-	var terrain = new THREE.Object3D();
-	terrain.collideWithPlayer = true;
-	terrain.collideWithDynamic = true;
-
-	var currScale = new THREE.Vector3(1,1,1);
-	var currPosition = new THREE.Vector3(0,-50,0);
-
+	var geometry = new THREE.Geometry();
+	
 
 	function addBlock(i) {
 
-		var block = new THREE.Mesh(self.reusable.geometry[2], self.reusable.material[0]);
-		block.scale = currScale.clone();
-		block.position = currPosition.clone();
-		terrain.add(block);
-		currPosition.addSelf(new THREE.Vector3( i%(Math.random()*100-50), i%(Math.random()*100-50), i%(Math.random()*100-50)));
-		currScale.addSelf(new THREE.Vector3(i % (Math.random()*10000), i*(Math.random()*100)%i, i % (Math.random()*10)));
-
+		geometry.vertices.push(new THREE.Vector3(  (Math.cos(i/Math.PI*i)*10000),  (Math.sin(i) * 10000), (Math.sin(i/Math.PI*i)*10000)));
+		
+		var index = i+1;
+		if(index % 3 === 0){
+			geometry.faces.push( new THREE.Face3( i, i-1, i-2) );
+		}
 	}
 
-	for(var i = 0; i < 400; ++i){
+	for(var i = 0; i < 1000; ++i){
 		addBlock(i)
 	}
-	terrain.applyMatrix( new THREE.Matrix4().makeRotationX( Math.PI / 2  ) );
-	return terrain;
+
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	geometry.mergeVertices();
+	geometry.dynamic = true;
+	geometry.dirtyVertices = true;
+	THREE.GeometryUtils.normalizeUVs(geometry);
+	var clouds = new THREE.Mesh(geometry, self.reusable.material[1]);
+	clouds.rotation.y = - 90 * Math.PI / 180;
+	clouds.position.y = - 10000;
+	clouds.collideWithPlayer = false;
+	clouds.collideWithDynamic = false;
+	var startTime =  Date.now();
+	clouds.update = setInterval(function(){
+		var time =  Date.now();
+		var past = time - startTime;
+		//console.log(past, clouds.geometry)
+		clouds.rotation.y += 0.001;
+		
+		for(var i = 0; i < clouds.geometry.vertices.length; ++i){
+			var index = i+1;
+			var change =  Math.sin(Math.log(past)) *   i / 100;
+		
+			if(index % 3 === 0){
+				clouds.geometry.vertices[ i ].z += change;
+				clouds.geometry.vertices[ i-1 ].z +=  change;
+				clouds.geometry.vertices[ i-2 ].z +=  change;
+				clouds.geometry.vertices[ i ].x +=  change;
+				clouds.geometry.vertices[ i-1 ].x +=  change;
+				clouds.geometry.vertices[ i-2 ].x +=  change;
+				clouds.geometry.vertices[ i ].y +=  Math.cos(change*i);
+				clouds.geometry.vertices[ i-1 ].y +=  Math.cos(change*i);
+				clouds.geometry.vertices[ i-2 ].y +=  Math.cos(change*i);
+				
+			}
+			
+		}
+		clouds.geometry.verticesNeedUpdate = true;
+		clouds.geometry.normalsNeedUpdate = true;
+	}, 25);
+	//clouds.material.wireframe = true;
+	
+	return clouds;
 };
 
 

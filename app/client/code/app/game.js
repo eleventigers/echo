@@ -99,7 +99,7 @@ defaultState.onMouseDown = function(event, x, y){
 							var l = obj.parent.children.length;
 							if(obj === obj.parent.children[3] || obj === obj.parent.children[l-1]){
 								obj.parent.turtle.position.copy(obj.position);
-								obj.parent.turtle.direction.copy(intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.4-0.2, Math.random()*0.8, Math.random()*0.4-0.2)).normalize());
+								obj.parent.turtle.direction.copy(intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.4-0.2, Math.random()*0.9, Math.random()*0.4-0.2)).normalize());
 								obj.parent.sound.play({buffer: this.level.player.collected, loop:true, building:true});
 								this.level.player.collected = [];	
 							} else {
@@ -112,7 +112,6 @@ defaultState.onMouseDown = function(event, x, y){
 						
 					} else {
 						if(intersects[0].distance <= 50){
-
 							var branch = this.spawner.build(intersects[0].point, ray.direction.clone().negate().multiplySelf(new THREE.Vector3(-1, 1, -1)).normalize());
 							console.log(branch)
 							this.level.add(branch);
@@ -234,7 +233,7 @@ function setupAudio(listener){
 }
 
 function setupCamera(){
-	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 6000 );
+	return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 50000 );
 }
 
 
