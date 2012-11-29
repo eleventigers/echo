@@ -1,4 +1,4 @@
-Build for the Github Game Off 2012, **Echo** is a game where you collect, recycle and destroy sounds while trying to reach a point in distance.
+Build for the Github Game Off 2012, **Echo** is a game where you collect, recycle and destroy sounds while trying to reach the final destination.
 
 ## The Challenge
 
