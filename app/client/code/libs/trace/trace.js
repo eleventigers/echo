@@ -649,8 +649,9 @@
         }, 
         removeSelf: {
             value: function(){
+                this.stop();
+                if(this.parent)this.parent.remove(this);
                 this.deallocate();
-                if(this.parent) this.parent.remove(this);
             }
         },  
         init: {

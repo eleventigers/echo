@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8"/>
     <SocketStream/>
-    <title>Kite Hunt</title>
+    <title>echo</title>
     <style>
       html, body {
         height: 100%;
@@ -27,7 +27,7 @@
       }
 
       #overlay {
-
+        opacity:1;
         position: absolute;
         width: 100%;
         height: 100%;
@@ -46,6 +46,7 @@
       }
 
       #buttons{
+        display: none;
         margin-top:2.5%;
         margin-left: auto;
         margin-right: auto;
@@ -62,23 +63,32 @@
      /* #buttons ul {
         margin-top: 3%;
       }*/
-      #buttons li {
-        cursor: pointer;
+      #buttons li {  
         padding: 16px;
         margin: 10px;
         color: #ffffff;
         font-size:2em;
-        letter-spacing: .1em;
+        letter-spacing: .1em; 
+      }
+
+      #buttons .enabled{
+        cursor: pointer;
         background-color: #55574A;
       }
 
-      #buttons li:hover {
+      #buttons .enabled:hover {
         background-color: rgba(54, 148, 144, 0.88);
       }
 
+      #buttons .disabled {
+        opacity: 0.2;
+        cursor: default;
+      }
+
+    
+
       #tagline {
-       /* position: relative;
-        display: block;*/
+        display: none;
         margin-top:6.5%;
         width:300px;
         margin-right: auto;
@@ -128,10 +138,14 @@
       #loader {
         position: relative;
         margin-top:6%;
-        /*left: 30%;*/
-        width:64px;
+        width:300px;
         margin-left: auto;
         margin-right: auto;
+        text-align: center;
+      }
+      #loader p {
+        color: rgba(256,256,256, 0.5);
+        font-size:0.7em;
       }
       
     </style>
@@ -142,9 +156,9 @@
         <header> echo </header>
         <div id="buttons"> 
           <ul>
-            <li>Play</li>
-            <li>Restart</li>
-            <li>About</li>
+            <li id="play" class="enabled">Play</li>
+            <li id="restart" class="disabled">Restart</li>
+            <li id="about" class="enabled">About</li>
           </ul>    
         </div>
         <div id="loader">
@@ -166,12 +180,13 @@
           <div class="f_circleG" id="frotateG_08">
           </div>
           </div>
+          <p>  </p>
         </div> 
          <div id="tagline">
           <span>&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
         </div>   
       </div>
-      <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a></div>
+      <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a> for the <a href="https://github.com/github/game-off-2012" target="blank">Github Game Off 2012</a></div>
     </div>
     <div id="collection">  
       <div id="wave"></div>

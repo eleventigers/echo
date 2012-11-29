@@ -33,7 +33,7 @@ Struct.Tree.prototype.removeSelf = function(){
 		this.turtle = undefined;
 		this.parent.remove(this);
 		this.deallocate();
-		console.log("dead tree");	
+		// console.log("dead tree");	
 	} else {
 		console.log(this, "has no parent... :<");
 	}

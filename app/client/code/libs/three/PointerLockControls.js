@@ -15,8 +15,6 @@ var PointerLockControls = function ( camera ) {
 	var cubeGeometry = new THREE.CubeGeometry(10,10,10,1,1,1);
 	var wireMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe:false, opacity:0 } );
 	var yawObject = new THREE.Mesh( cubeGeometry, wireMaterial );
-	
-	yawObject.position.y= 1;
 
 	yawObject.add( pitchObject );
 
@@ -174,7 +172,14 @@ var PointerLockControls = function ( camera ) {
 		return (collisions) ?  true : false;
 	};
 
+	this.lock = function(value){
+		this.locked = value;
+		if(value) velocity.set(0,0,0);
+	};
+
 	this.update = function ( delta ) {
+
+		if(this.locked) return;
 
 		delta *= 0.1;
 

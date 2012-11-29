@@ -34,6 +34,7 @@ Util.Loader.prototype.load = function(assets, oncomplete, onprogress, onerror) {
 	if(this.audio){
 
 		var self = this;
+		var total = 0;
 		var toLoad = 0;
 		var errors  = 0;
 		var cats = [];
@@ -50,6 +51,8 @@ Util.Loader.prototype.load = function(assets, oncomplete, onprogress, onerror) {
 			}
 		}
 
+		total = toLoad;
+
 		next(0, assets);
 
 		function next(index, requested){
@@ -62,7 +65,7 @@ Util.Loader.prototype.load = function(assets, oncomplete, onprogress, onerror) {
 
 		function progress(file){
 			--toLoad;
-			if(onprogress) onprogress(file, toLoad);
+			if(onprogress) onprogress(file, toLoad, total);
 			console.log(self+" loaded "+file, toLoad+" left to load...");
 		}
 

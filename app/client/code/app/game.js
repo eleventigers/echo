@@ -8,10 +8,11 @@ var container = document.createElement('div');
 var stats;
 
 // Dimmensions for the Three renderer
-var SCREEN_WIDTH = window.innerWidth+1, SCREEN_HEIGHT = window.innerHeight;
+var SCREEN_WIDTH = window.innerWidth+1, SCREEN_HEIGHT = window.innerHeight+1;
 
 // Global clock
 var TIME = Date.now();
+var START = Date.now();
 
 var GUI = (function(){
 	var body = document.body;
@@ -31,21 +32,63 @@ var GUI = (function(){
 
 	} else {
 		tagline.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
-	}	
+	}
 
 	return {
 		overlay: {
-			enable: function(enabled, text){
-				if(!enabled){
-					overlay.style.display = 'none';
-					tagline.style.display = 'none';
-				} else {
-					overlay.style.display = '-webkit-box';
-					overlay.style.display = '-moz-box';
-					overlay.style.display = 'box';
-					tagline.style.display = '';
-					if (text) tagline.innerHTML = text;
-				}	
+			fade: function(oncomplete){
+				$('#overlay').fadeToggle(1000, function(){
+					if(oncomplete) oncomplete();
+				});
+			},
+			menu: {
+				enable: function(enabled){
+					if(!enabled){
+						$("#menu").hide();
+					} else {
+						$("#menu").show();
+					}
+				},
+				title: {
+					enable: function(enabled){
+						if(!enabled){
+							$("#menu header").hide();
+						} else {
+							$("#menu header").show();
+						}
+					},
+				},
+				buttons: {
+					enable: function(enabled){
+						if(!enabled){
+							$("#menu #buttons").hide();
+						} else {
+							$("#menu #buttons").show();
+						}
+					},
+					restart: {
+						enable: function(enabled){
+							if(!enabled){
+								$("#menu #buttons #restart").addClass("disabled");
+								$("#menu #buttons #restart").removeClass("enabled");
+							} else {
+								$("#menu #buttons #restart").addClass("enabled");
+								$("#menu #buttons #restart").removeClass("disabled");
+							}
+						}
+					},
+					play: {
+						enable: function(enabled){
+							if(!enabled){
+								$("#menu #buttons #play").addClass("disabled");
+								$("#menu #buttons #play").removeClass("enabled");
+							} else {
+								$("#menu #buttons #play").addClass("enabled");
+								$("#menu #buttons #play").removeClass("disabled");
+							}
+						}
+					}
+				}
 			},
 			tagline: {
 				enable: function(enabled){
@@ -92,7 +135,7 @@ var GUI = (function(){
 				}
 			},
 			update: function(percent, text){
-				//$(".spinner").animate({}, 100)
+				$("#loader p").html(percent+"%: loading "+text);
 			}
 		}
 	}
@@ -105,8 +148,6 @@ var controls = setupControls(camera);
 var trace = setupAudio();
 var loader = new Util.Loader({audio:trace});
 
-
-
 // APPLICATION LOAD STATE //
 
 var initState = new GameState();
@@ -115,11 +156,29 @@ initState.onActivation = function() {
 
 	GUI.loader.enable(true);
 	var samples = ["/sounds/hmpback1.wav", "/sounds/flickburn.WAV", "/sounds/woodoverblade.wav"];
-	loader.load({sound:samples}, function(map, errors){
-		GUI.loader.enable(false);
-	});
-
+	loader.load(
+		{sound:samples}, 
+		function(map, errors){
+			GUI.loader.enable(false);
+			GUI.overlay.menu.buttons.enable(true);
+			GUI.overlay.tagline.enable(true);
+		}, 
+		function(file, toload, total){
+			GUI.loader.update(Math.round(toload/total*100), file);
+		});
 };
+
+initState.onMouseDown = function(event){
+	if (event.toElement.id){
+		var id = event.toElement.id;
+		if(id === "play"){
+			this.stateManager.setActiveAppState(defaultState);
+			GUI.overlay.menu.buttons.restart.enable(true);
+			GUI.pointer.lock(true);
+		}
+	}
+}
+
 
 // MAIN GAME STATE //
 
@@ -143,9 +202,19 @@ defaultState.onMouseMove = function(prevX, prevY, x, y, prevMoveX, prevMoveY, mo
 	}
 };
 defaultState.onMouseDown = function(event, x, y){
-	if(this.running){
-		
-		event.preventDefault();
+	event.preventDefault();
+
+	if (event.toElement.id){
+		var id = event.toElement.id;
+		if(id === "play"){
+			GUI.pointer.lock(true);		
+		}
+		if(id === "restart"){
+			this.restart();
+		}
+	}
+
+	if(this.running){	
 		
 		if(event.button === 0){
 			if(this.level.player.collected.length > 0){
@@ -172,7 +241,6 @@ defaultState.onMouseDown = function(event, x, y){
 					} else {
 						if(intersects[0].distance <= 50){
 							var branch = this.spawner.build(intersects[0].point, ray.direction.clone().negate().multiplySelf(new THREE.Vector3(-1, 1, -1)).normalize());
-							console.log(branch)
 							this.level.add(branch);
 							this.level.player.collideWith.push(branch);
 							branch.sound.play({buffer: this.level.player.collected, loop:true, building:true});
@@ -187,51 +255,56 @@ defaultState.onMouseDown = function(event, x, y){
 	}
 };
 defaultState.onResize = function () {
-	if(this.camera){
-		this.camera.aspect = window.innerWidth / window.innerHeight;
-		this.camera.updateProjectionMatrix();
-	} 
-	if(this.renderer){
-		this.renderer.setSize( window.innerWidth, window.innerHeight );
-	}		
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize( window.innerWidth+1, window.innerHeight+1 );			
 };
 
+initState.onResize = defaultState.onResize;
+
 defaultState.onRestart = function(){
-
-	this.level.spawnPlayer();
-
+	var self = this;
+	this.level.reset(function(){
+		self.level.setPlayer(self.controls.getYaw());
+		self.level.spawnPlayer();
+		GUI.pointer.lock(true);
+		GUI.overlay.menu.buttons.play.enable(true);
+	});
+	START = Date.now();	
 };
 
 defaultState.onPause = function(){
+	var self = this;
 	this.running = false;
 	this.audio.mixer.level(0);
-	GUI.overlay.enable(true);
-	GUI.collection.enable(false);
+	GUI.overlay.fade(function(){
+		self.controls.lock(true);
+		GUI.collection.enable(false);
+	});
 };
 
 defaultState.onResume = function(){
 	this.running = true;
+	this.controls.lock(false);
 	this.audio.mixer.level(1);
-	GUI.overlay.enable(false);
-	GUI.collection.enable(true);
+	GUI.overlay.fade(function(){
+		GUI.collection.enable(true);
+	});
 };
 
 defaultState.onFail = function(){
-
 	this.running = false;
+	GUI.overlay.menu.buttons.play.enable(false);
 	GUI.pointer.lock(false);
-	this.restart();
-
 };
 
 defaultState.onRender = function(){
 	if (this.running){
 		this.controls.collUpdate(detectCollision(this.level.player.collideWith, this.controls));
 		this.controls.update(Date.now() - TIME);
-		this.spawner.simulate();
 		TWEEN.update();
 		this.audio.listener.update(this.camera);
-		//this.stats.update();
+
 		GUI.collection.update(this.level.player.collected.length);
 		
 		if(this.stateManager.cursor.downRight){
@@ -240,9 +313,17 @@ defaultState.onRender = function(){
 
 		if(TIME % 9 === 0) {
 			var fail = this.level.testConditions("failures");
-			if(fail.length > 0 && fail[0] === true){
-				this.fail();
+			if(fail.length > 0){
+				if(fail[0] || fail[1]) this.fail();
 			}
+			var reach = this.level.testConditions("objectives");
+			if(reach.length > 0 && reach[0] === true){
+				
+			}
+		}
+
+		if(TIME - START > 5000){
+			this.spawner.simulate();
 		}
 
 		this.renderer.render( this.level, this.camera );
@@ -261,12 +342,11 @@ defaultState.onPointerLockChange = function(event) {
 	}	
 };
 defaultState.onPointerLockError = function(event) {
-	tagline.style.display = '';
+	
 };
 
 defaultState.onActivation = function() {
-
-	var self = this;
+	START = Date.now();
 	this.renderer = renderer;
 	this.camera = camera;
 	this.controls = controls;
@@ -276,12 +356,11 @@ defaultState.onActivation = function() {
 	this.audio = trace;
 	this.audio.mixer.level(0);
 	this.loader = loader;
-	this.spawner = new Sim.Spawner({state:this});
-	animate();	
-	
+	this.spawner = new Sim.Spawner({state:this, buffers:loader.get("sound")});
+	animate();
 };
 
-var stateMan = new StateManager(defaultState, document);
+var stateMan = new StateManager(initState, document);
 
 
 ////

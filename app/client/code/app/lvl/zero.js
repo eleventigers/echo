@@ -12,12 +12,12 @@ Level.Zero = function(properties){
 	};
 
 	this.entry = {
-		point: new THREE.Vector3(0,0,0),
+		point: new THREE.Vector3(-550,2,0),
 		radius: 25
 	};
 	this.exit = {
-		point: new THREE.Vector3(0,0,0),
-		radius: 25
+		point: new THREE.Vector3(2000,8,-500),
+		radius: 50
 	};
 
 	this.reusable = {
@@ -46,12 +46,18 @@ Level.Zero = function(properties){
 	this.static = {
 		objects: [
 			new THREE.Mesh(this.reusable.geometry[0], this.reusable.material[0]),
-			new Struct.Platform(),
+			new Struct.Platform(100,100,50000),
 			new THREE.DirectionalLight( 0x757575, .1 ),
 			new THREE.AmbientLight( 0xf2f2f2 ),
 			new THREE.SpotLight(0xffffff, 1 ),
 			new THREE.SpotLight(0xffffff, 50 ),
-			new Struct.Platform()
+			new Struct.Platform(100,100,50000),
+			new Struct.Platform(),
+			new Struct.Platform(100,90),
+			new Struct.Platform(50,50),
+			new Struct.Platform(90,100),
+			new Struct.Platform(10000,10,1)
+
 		]
 	};
 
@@ -70,6 +76,11 @@ Level.Zero = function(properties){
 	this.static.objects[5].position.set(5000, 4500, -4000);
 	this.static.objects[5].target = this.static.objects[0];
 	this.static.objects[6].position.set(2000, -25000, -500);
+	this.static.objects[7].position.set(200, -25080, -100);
+	this.static.objects[8].position.set(700, -25050, 0);
+	this.static.objects[9].position.set(1300, -25100, 300);
+	this.static.objects[10].position.set(1700, -25050, 100);
+	this.static.objects[11].position.set(-5050, -1, 0);
 
 	this.dynamic = {
 		objects: [],
@@ -84,13 +95,22 @@ Level.Zero = function(properties){
 		}
 	};
 
-	this.failures[0] = function(){
-		if(self.player.mesh.position.y  <= -20000){
-			return true;
-		} else {
-			return false;
+	this.failures = [
+		function(){
+			if(self.player.mesh.position.y  <= -20000){
+				return true;
+			} else {
+				return false;
+			}
+		},
+		function(){
+			if(self.player.mesh.position.x  <= -2000){
+				return true;
+			} else {
+				return false;
+			}
 		}
-	};
+	]; 
 
 	this.populateWith(this.static.objects);
 	this.populateWith(this.generateClouds());
@@ -99,6 +119,19 @@ Level.Zero = function(properties){
 
 Level.Zero.prototype = new Level();
 
+Level.Zero.prototype.reset = function(oncomplete){
+	if(!oncomplete) return;
+
+	this.player.collected = [];
+
+	for(var i = 0; i < this.children.length; ++i){
+		if(this.children[i].constructor === Struct.Tree) {
+			this.children[i].removeSelf();
+		}
+	}
+
+	oncomplete();
+};
 
 Level.Zero.prototype.generateClouds = function(){
 	var self = this;

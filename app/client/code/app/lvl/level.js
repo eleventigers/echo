@@ -28,9 +28,12 @@ Level.prototype.testConditions = function(topic){
 	}	
 };
 Level.prototype.spawnPlayer = function(){
-	this.player.mesh.position.set(this.entry.point.x, this.entry.point.y, this.entry.point.z);
 	var index = this.children.indexOf(this.player.mesh);
-	if( index === -1) this.add(this.player.mesh);
+	if( index === -1) {
+		this.add(this.player.mesh);
+	}
+	this.player.mesh.position = new THREE.Vector3(this.entry.point.x, this.entry.point.y, this.entry.point.z);
+	this.player.mesh.rotation.y = -1.5;
 };
 Level.prototype.populateWith = function(list){
 	var self = this;
@@ -50,6 +53,7 @@ Level.prototype.populateWith = function(list){
 		}	
 	}		
 };
+
 Level.prototype.remove = function ( object ) {
 
 	var index = this.player.collideWith.indexOf( object );

@@ -1,6 +1,9 @@
 StateManager = function (init_state, canvas_object) {
-	// The state manager most have some initial state
+	// The state manager must have some initial state
 	this.activeAppState = init_state;
+
+	// and a document element that it is to be bind to
+	this.element = canvas_object;
 
 	// Create an empty object, we will store key presses here 
 	this.keysPressed = {};
@@ -31,7 +34,7 @@ StateManager = function (init_state, canvas_object) {
 
 
 	// Key pressed
-	canvas_object.addEventListener("keydown", function (event) {
+	this.element.addEventListener("keydown", function (event) {
 		// For compatibility purposes we need to check whether we are dealing with 'charCode' or 'keyCode'
 		var chCode = ('keyCode' in event) ? event.keyCode : event.charCode;
 		// Record key press in map for reference
@@ -43,7 +46,7 @@ StateManager = function (init_state, canvas_object) {
 	});
 
 	// Key released
-	canvas_object.addEventListener("keyup", function (event) {
+	this.element.addEventListener("keyup", function (event) {
 		var chCode = ('keyCode' in event) ? event.keyCode :  event.charCode;
 		self.keysPressed[chCode] = false;
 
@@ -52,7 +55,7 @@ StateManager = function (init_state, canvas_object) {
 	});
 
 	// Mouse moved
-	canvas_object.addEventListener("mousemove", function (event) {
+	this.element.addEventListener("mousemove", function (event) {
 
 		var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
 		var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
@@ -73,7 +76,7 @@ StateManager = function (init_state, canvas_object) {
 	});
 
 	// Mouse clicked (down)
-	canvas_object.addEventListener("mousedown", function (event) {
+	this.element.addEventListener("mousedown", function (event) {
 		if (typeof self.activeAppState.onMouseDown === 'function')
 			self.activeAppState.onMouseDown(event, self.cursor.x, self.cursor.y);
 		if(event.button === 0) 
@@ -84,7 +87,7 @@ StateManager = function (init_state, canvas_object) {
 	});
 
 	// Mouse released (up)
-	canvas_object.addEventListener("mouseup", function (event) {
+	this.element.addEventListener("mouseup", function (event) {
 		if (typeof self.activeAppState.onMouseUp === 'function')
 			self.activeAppState.onMouseUp(event, self.cursor.x, self.cursor.y);
 		if(event.button === 0) 
@@ -100,27 +103,27 @@ StateManager = function (init_state, canvas_object) {
 	});
 
 	// Hook pointer lock state change events
-	canvas_object.addEventListener( 'pointerlockchange', function(event) {
+	this.element.addEventListener( 'pointerlockchange', function(event) {
 		if (typeof self.activeAppState.onPointerLockChange === 'function')
 			self.activeAppState.onPointerLockChange(event);
 	}, false );
-	canvas_object.addEventListener( 'mozpointerlockchange',  function(event) {
+	this.element.addEventListener( 'mozpointerlockchange',  function(event) {
 		if (typeof self.activeAppState.onPointerLockChange === 'function')
 			self.activeAppState.onPointerLockChange(event);
 	}, false );
-	canvas_object.addEventListener( 'webkitpointerlockchange',  function(event) {
+	this.element.addEventListener( 'webkitpointerlockchange',  function(event) {
 		if (typeof self.activeAppState.onPointerLockChange === 'function')
 			self.activeAppState.onPointerLockChange(event);
 	}, false );
-	canvas_object.addEventListener( 'pointerlockerror', function(event) {
+	this.element.addEventListener( 'pointerlockerror', function(event) {
 		if (typeof self.activeAppState.onPointerLockError === 'function')
 			self.activeAppState.onPointerLockError(event);
 	}, false );
-	canvas_object.addEventListener( 'mozpointerlockerror', function(event) {
+	this.element.addEventListener( 'mozpointerlockerror', function(event) {
 		if (typeof self.activeAppState.onPointerLockError === 'function')
 			self.activeAppState.onPointerLockError(event);
 	}, false );
-	canvas_object.addEventListener( 'webkitpointerlockerror', function(event) {
+	this.element.addEventListener( 'webkitpointerlockerror', function(event) {
 		if (typeof self.activeAppState.onPointerLockError === 'function')
 			self.activeAppState.onPointerLockError(event);
 	}, false );

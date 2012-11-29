@@ -1,5 +1,7 @@
 #floatingCirclesG{
 position:relative;
+margin-right: auto;
+margin-left: auto;
 width:64px;
 height:64px;
 -moz-transform:scale(0.6);
