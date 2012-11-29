@@ -151,7 +151,7 @@
 		// APPLICATION LOAD STATE //
 
 		var initState = new GameState();
-		console.log(initState)
+
 		initState.onActivation = function() {
 
 			GUI.loader.enable(true);
@@ -497,11 +497,6 @@
 					
 
 	};
-
-
-	Echo.toString = function () {
-        return "Echo " + version + " by Jokubas Dargis";
-    };
 
 	define("app/game", [], function () {return Echo});
 	
