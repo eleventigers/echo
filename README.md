@@ -1,5 +1,17 @@
 Build for the Github Game Off 2012, **Echo** is a game where you collect, recycle and destroy sounds while trying to reach the final destination.
 
+## Build instructions
+
+* Get Vagrant
+* Import Precise64 VBox 
+* vagrant up in repo dir
+* SSH into Vagrant using user:vagrant pass:vagrant
+* Navigate to /home/vagrant/app and do npm install
+* Launch game server - node app.js
+* Open http://localhost:3000 in your browser and voila!
+
+
+
 ## The Challenge
 
 You have the entire month of November to create a **web-based** game *loosely* built around one or more of the following themes:

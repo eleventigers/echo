@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <link href="css/libs/reset.css" media="screen" rel="stylesheet" type="text/css">
+    <link href="css/libs/spinner.css" media="screen" rel="stylesheet" type="text/css">
+    <script src="require.js"></script>
+    <script>
+      function loadLibs(){
+        require( ["libs/three/three", 
+                  "libs/three/ShaderExtras", 
+                  "libs/three/ImprovedNoise",
+                  "libs/three/Detector.js",
+                  "libs/jquery/jquery.min",
+                  "libs/freesound/freesoundLib",
+                  "libs/tween/Tween",
+                  "libs/underscore/underscore",
+                  "libs/stats/Stats"
+                ],
+          function() {
+              loadGame();    
+          }
+        );
+      }
+      function loadGame(){
+        require([ 'app/ctrl/PointerLockControls',
+                  'app/state/GameState', 
+                  'app/state/StateManager', 
+                  'app/turtle/turtle',
+                  'app/struct/struct',
+                  'app/struct/tree',
+                  'app/struct/segment',
+                  'app/struct/platform',
+                  'app/lvl/level',
+                  'app/lvl/zero',
+                  'app/sim/sim',
+                  'app/sim/spawner',
+                  'app/util/util',
+                  'app/util/loader',
+                  'app/trace/trace'
+                ],
+                function(){
+                  startGame();
+                }
+          );
+      }
+      function startGame(){
+        require(['app/echo'], function(){
+          var game = new Echo();     
+        });
+      }
+
+      loadLibs();
+      
+    </script>
+    <title>echo</title>
+    <style>
+      html, body {
+        height: 100%;
+      }
+
+      body {
+        background-color: #000000;
+        margin: 0;
+        overflow: hidden;
+        font-family: arial;
+      }
+
+      a {
+        color: rgba(256,256,256, 1);
+      }
+
+      header {
+        color: #ffffff;
+        font-size:8em;  
+        font-weight: bold;
+      }
+
+      #overlay {
+        opacity:1;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,1);
+
+      }
+
+      #menu {
+        position: relative;
+        top:15%;
+        height:50%;
+        width:40%;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+      }
+
+      #buttons{
+        display: none;
+        margin-top:2.5%;
+        margin-left: auto;
+        margin-right: auto;
+        border-width: 2px;
+        border-style: solid;
+        border-color: rgba(67, 133, 127, 0.5);
+        box-shadow:         0px 0px 20px rgba(90,256,256,0.3);
+        -webkit-box-shadow: 0px 0px 20px rgba(90,256,256,0.3);
+        -moz-box-shadow:    0px 0px 20px rgba(90,256,256,0.3);
+        width:300px;
+        
+      }
+
+     /* #buttons ul {
+        margin-top: 3%;
+      }*/
+      #buttons li {  
+        padding: 16px;
+        margin: 10px;
+        color: #ffffff;
+        font-size:2em;
+        letter-spacing: .1em; 
+      }
+
+      #buttons .enabled{
+        cursor: pointer;
+        background-color: #55574A;
+      }
+
+      #buttons .enabled:hover {
+        background-color: rgba(54, 148, 144, 0.88);
+      }
+
+      #buttons .disabled {
+        opacity: 0.2;
+        cursor: default;
+      }
+
+    
+
+      #tagline {
+        display: none;
+        margin-top:6.5%;
+        width:300px;
+        margin-right: auto;
+        margin-left: auto;
+        text-align: center;
+        color: #ffffff;
+        font-size:.9em;
+        font-style: italic;
+      }
+
+      #author {
+        position: absolute;
+        top:95%;
+        text-align: center;
+        width:100%;
+        color: rgba(256,256,256, 0.5);
+        font-size:.8em;
+      }
+
+      #collection {
+        display: none; 
+        position:absolute;
+        width:2%;
+        margin-left: 1%;
+        padding: 1.2% 0.2% 0.2% 0.2%;
+      }
+
+      #collection p {
+        position: relative;
+        text-align: center;
+        width:32px;
+        color: #ffffff;
+        font-size:0.8em;
+        font-style:bold;
+        margin-top:10%;
+        margin-left: 22%;
+      }
+
+      #wave {
+        position: relative;
+        margin-left: 16%;
+        width:32px;
+        height:32px;
+        background-image: url(images/noun_project_6000.png);
+        background-repeat: no-repeat;
+      }
+      #loader {
+        position: relative;
+        margin-top:6%;
+        width:300px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+      }
+      #loader p {
+        color: rgba(256,256,256, 0.5);
+        font-size:0.7em;
+      }
+      
+    </style>
+  </head>
+  <body>
+    <div id="overlay">
+      <div id="menu">
+        <header> echo </header>
+        <div id="buttons"> 
+          <ul>
+            <li id="play" class="enabled">Play</li>
+            <li id="restart" class="disabled">Restart</li>
+            <li id="about" class="enabled">About</li>
+          </ul>    
+        </div>
+        <div id="loader">
+          <div id="floatingCirclesG">
+          <div class="f_circleG" id="frotateG_01">
+          </div>
+          <div class="f_circleG" id="frotateG_02">
+          </div>
+          <div class="f_circleG" id="frotateG_03">
+          </div>
+          <div class="f_circleG" id="frotateG_04">
+          </div>
+          <div class="f_circleG" id="frotateG_05">
+          </div>
+          <div class="f_circleG" id="frotateG_06">
+          </div>
+          <div class="f_circleG" id="frotateG_07">
+          </div>
+          <div class="f_circleG" id="frotateG_08">
+          </div>
+          </div>
+          <p>  </p>
+        </div> 
+         <div id="tagline">
+          <span>&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
+        </div>   
+      </div>
+      <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a> for the <a href="https://github.com/github/game-off-2012" target="blank">Github Game Off 2012</a></div>
+    </div>
+    <div id="collection">  
+      <div id="wave"></div>
+      <p> 0 </p>
+    </div>
+
+    
+   
+  </body>
+</html>

@@ -1,1 +1,0 @@
-default[:coffeescript][:version] = '1.1.2'
