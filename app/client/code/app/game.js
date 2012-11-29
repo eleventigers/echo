@@ -16,7 +16,7 @@ var TIME = Date.now();
 var GUI = (function(){
 	var body = document.body;
 	var doc = document;
-	var menu = $('#menu');
+	var overlay = $('#overlay');
 	var tagline = $('#tagline' );
 	var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
 
@@ -34,15 +34,15 @@ var GUI = (function(){
 	}	
 
 	return {
-		menu: {
+		overlay: {
 			enable: function(enabled, text){
 				if(!enabled){
-					menu.style.display = 'none';
+					overlay.style.display = 'none';
 					tagline.style.display = 'none';
 				} else {
-					menu.style.display = '-webkit-box';
-					menu.style.display = '-moz-box';
-					menu.style.display = 'box';
+					overlay.style.display = '-webkit-box';
+					overlay.style.display = '-moz-box';
+					overlay.style.display = 'box';
 					tagline.style.display = '';
 					if (text) tagline.innerHTML = text;
 				}	
@@ -205,14 +205,14 @@ defaultState.onRestart = function(){
 defaultState.onPause = function(){
 	this.running = false;
 	this.audio.mixer.level(0);
-	GUI.menu.enable(true);
+	GUI.overlay.enable(true);
 	GUI.collection.enable(false);
 };
 
 defaultState.onResume = function(){
 	this.running = true;
 	this.audio.mixer.level(1);
-	GUI.menu.enable(false);
+	GUI.overlay.enable(false);
 	GUI.collection.enable(true);
 };
 

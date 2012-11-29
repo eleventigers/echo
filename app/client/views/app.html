@@ -16,48 +16,86 @@
         font-family: arial;
       }
 
-      #menu {
+      a {
+        color: rgba(256,256,256, 1);
+      }
+
+      header {
+        color: #ffffff;
+        font-size:8em;  
+        font-weight: bold;
+      }
+
+      #overlay {
 
         position: absolute;
         width: 100%;
         height: 100%;
-
         background-color: rgba(0,0,0,1);
-/*
-        display: -webkit-box;
-        display: -moz-box;
-        display: box;*/
-
-     /*   -webkit-box-orient: horizontal;
-        -moz-box-orient: horizontal;
-        box-orient: horizontal;
-
-        -webkit-box-pack: center;
-        -moz-box-pack: center;
-        box-pack: center;
-
-        -webkit-box-align: center;
-        -moz-box-align: center;
-        box-align: center;*/
 
       }
 
-      #title {
+      #menu {
         position: relative;
-        top:30%;
-        color: #ffffff;
-        font-size:2.8em;
-        /*width: 80%;*/
-       /* padding-right:50%;*/
+        top:15%;
+        height:50%;
+        width:40%;
+        margin-left: auto;
+        margin-right: auto;
         text-align: center;
+      }
+
+      #buttons{
+        margin-top:2.5%;
+        margin-left: auto;
+        margin-right: auto;
+        border-width: 2px;
+        border-style: solid;
+        border-color: rgba(67, 133, 127, 0.5);
+        box-shadow:         0px 0px 20px rgba(90,256,256,0.3);
+        -webkit-box-shadow: 0px 0px 20px rgba(90,256,256,0.3);
+        -moz-box-shadow:    0px 0px 20px rgba(90,256,256,0.3);
+        width:300px;
+        
+      }
+
+     /* #buttons ul {
+        margin-top: 3%;
+      }*/
+      #buttons li {
+        cursor: pointer;
+        padding: 16px;
+        margin: 10px;
+        color: #ffffff;
+        font-size:2em;
+        letter-spacing: .1em;
+        background-color: #55574A;
+      }
+
+      #buttons li:hover {
+        background-color: rgba(54, 148, 144, 0.88);
       }
 
       #tagline {
-        position: relative;
-       
-        color: #ffffff;
+       /* position: relative;
+        display: block;*/
+        margin-top:6.5%;
+        width:300px;
+        margin-right: auto;
+        margin-left: auto;
         text-align: center;
-        /*cursor: pointer;*/
+        color: #ffffff;
+        font-size:.9em;
+        font-style: italic;
+      }
+
+      #author {
+        position: absolute;
+        top:95%;
+        text-align: center;
+        width:100%;
+        color: rgba(256,256,256, 0.5);
+        font-size:.8em;
       }
 
       #collection {
@@ -88,45 +126,59 @@
         background-repeat: no-repeat;
       }
       #loader {
-        position: absolute;
+        position: relative;
+        margin-top:6%;
+        /*left: 30%;*/
+        width:64px;
         margin-left: auto;
         margin-right: auto;
-        margin-top:60%;  
       }
       
     </style>
   </head>
   <body>
-    <div id="menu">
-      <div id="title"> ECHO </div>
-      <div id="tagline">
-        <span style="font-size:20pt">&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
+    <div id="overlay">
+      <div id="menu">
+        <header> echo </header>
+        <div id="buttons"> 
+          <ul>
+            <li>Play</li>
+            <li>Restart</li>
+            <li>About</li>
+          </ul>    
+        </div>
+        <div id="loader">
+          <div id="floatingCirclesG">
+          <div class="f_circleG" id="frotateG_01">
+          </div>
+          <div class="f_circleG" id="frotateG_02">
+          </div>
+          <div class="f_circleG" id="frotateG_03">
+          </div>
+          <div class="f_circleG" id="frotateG_04">
+          </div>
+          <div class="f_circleG" id="frotateG_05">
+          </div>
+          <div class="f_circleG" id="frotateG_06">
+          </div>
+          <div class="f_circleG" id="frotateG_07">
+          </div>
+          <div class="f_circleG" id="frotateG_08">
+          </div>
+          </div>
+        </div> 
+         <div id="tagline">
+          <span>&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
+        </div>   
       </div>
+      <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a></div>
     </div>
     <div id="collection">  
       <div id="wave"></div>
       <p> 0 </p>
     </div>
 
-    <div id="loader">
-      <div id="floatingCirclesG">
-      <div class="f_circleG" id="frotateG_01">
-      </div>
-      <div class="f_circleG" id="frotateG_02">
-      </div>
-      <div class="f_circleG" id="frotateG_03">
-      </div>
-      <div class="f_circleG" id="frotateG_04">
-      </div>
-      <div class="f_circleG" id="frotateG_05">
-      </div>
-      <div class="f_circleG" id="frotateG_06">
-      </div>
-      <div class="f_circleG" id="frotateG_07">
-      </div>
-      <div class="f_circleG" id="frotateG_08">
-      </div>
-      </div>
-    </div>
+    
+   
   </body>
 </html>
