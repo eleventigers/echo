@@ -1,9 +1,9 @@
 {
-  "name": "test",
-  "description": "An awesome real time application",
+  "name": "echo",
+  "description": "Sound sampling game",
   "version": "0.0.1",
-  "author": "Me <me@mydomain.com>",
-  "private": true,
+  "author": "Jokubas Dargis <phonodelik@gmail.com>",
+  "private": false,
   "engines": { "node": ">= 0.6.0" },
   "dependencies": {
     "socketstream": "0.3.x",
