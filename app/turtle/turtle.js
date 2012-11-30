@@ -118,7 +118,7 @@ Turtle.prototype.penDown = function() {
   	return this.drawing = true;
 };
 Turtle.prototype.setWidth = function(width) {
-  	this.width = width;
+  	this.width = (this.width+width)/2;
 };
 Turtle.prototype.setMaterial = function(material) {
   	this.material = material;

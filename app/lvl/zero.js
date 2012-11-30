@@ -1,5 +1,5 @@
 Level.Zero = function(properties){
-	this.renderer = properties.renderer || false;
+	this.state = properties.state || false;
 	var self = this;
 	Level.call(this);
 
@@ -8,7 +8,8 @@ Level.Zero = function(properties){
 			position: new THREE.Vector3()
 		},
 		collideWith: [],
-		collected: []
+		collected: [],
+		allCollected: []
 	};
 
 	this.entry = {
@@ -16,8 +17,8 @@ Level.Zero = function(properties){
 		radius: 25
 	};
 	this.exit = {
-		point: new THREE.Vector3(2000,8,-500),
-		radius: 50
+		point: new THREE.Vector3(2000,0,-500),
+		radius: 65
 	};
 
 	this.reusable = {
@@ -56,7 +57,8 @@ Level.Zero = function(properties){
 			new Struct.Platform(100,90),
 			new Struct.Platform(50,50),
 			new Struct.Platform(90,100),
-			new Struct.Platform(10000,10,1)
+			new Struct.Platform(10000,10,1),
+			new Struct.Platform(10,10,50000)
 
 		]
 	};
@@ -81,6 +83,8 @@ Level.Zero = function(properties){
 	this.static.objects[9].position.set(1300, -25100, 300);
 	this.static.objects[10].position.set(1700, -25050, 100);
 	this.static.objects[11].position.set(-5050, -1, 0);
+	this.static.objects[12].position.set(2000, 25000, -500);
+
 
 	this.dynamic = {
 		objects: [],
@@ -88,7 +92,7 @@ Level.Zero = function(properties){
 	};
 
 	this.objectives[0] = function(){
-		if(self.player.mesh.position.distanceTo(self.exit.point) <= self.exit.radius){
+		if(self.player.mesh.position.distanceTo(self.exit.point) <= self.exit.radius && !self.complete){
 			return true;
 		} else {
 			return false;
@@ -114,91 +118,92 @@ Level.Zero = function(properties){
 
 	this.populateWith(this.static.objects);
 	this.populateWith(this.generateClouds());
-	this.populateWith(this.generateStars());
+	this.populateWith(this.generateStars());	
 }
 
 Level.Zero.prototype = new Level();
 
 Level.Zero.prototype.reset = function(oncomplete){
-if(!oncomplete) return;
+	if(!oncomplete) return;
 
-this.player.collected = [];
+	this.player.collected = [];
+	this.player.allCollected = [];
 
-for(var i = 0; i < this.children.length; ++i){
-	if(this.children[i].constructor === Struct.Tree) {
-		this.children[i].removeSelf();
+	for(var i = 0; i < this.children.length; ++i){
+		if(this.children[i].constructor === Struct.Tree) {
+			this.children[i].removeSelf();
+		}
 	}
-}
-
-oncomplete();
+	oncomplete();
 };
 
 Level.Zero.prototype.generateClouds = function(){
-var self = this;
-var geometry = new THREE.Geometry();
-geometry.materials.push(this.reusable.material[1]);
-geometry.materials.push(this.reusable.material[2]);
+	var self = this;
+	var geometry = new THREE.Geometry();
+	geometry.materials.push(this.reusable.material[1]);
+	geometry.materials.push(this.reusable.material[2]);
 
-for(var i = 0; i < 1000; ++i) {
-	geometry.vertices.push(new THREE.Vector3(  (Math.cos(i/Math.PI*Math.random())*100000) ,  (Math.sin(i) * Math.random()*100000), (Math.sin(i/Math.PI*Math.random())*100000)));
-	var index = i+1;
-	if(index % 3 === 0){
-		geometry.faces.push( new THREE.Face3( i, i-1, i-2, undefined, undefined, Math.floor(Math.random()*2)));
-	}
-}
-
-geometry.computeFaceNormals();
-geometry.computeVertexNormals();
-geometry.mergeVertices();
-geometry.dynamic = true;
-geometry.dirtyVertices = true;
-
-var clouds = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial());
-
-clouds.collideWithPlayer = false;
-clouds.collideWithDynamic = false;
-
-var startTime =  Date.now();
-clouds.update = setInterval(function(){
-	var time =  Date.now();
-	var past = time - startTime;
-	clouds.rotation.y += 0.0005;	
-	for(var i = 0; i < clouds.geometry.vertices.length; ++i){
+	for(var i = 0; i < 1000; ++i) {
+		geometry.vertices.push(new THREE.Vector3(  (Math.cos(i/Math.PI*Math.random())*100000) ,  (Math.sin(i) * Math.random()*100000), (Math.sin(i/Math.PI*Math.random())*100000)));
 		var index = i+1;
-		var change =  Math.sin(Math.log(past/i)) *   Math.sqrt(i) / 10;
 		if(index % 3 === 0){
-			clouds.geometry.vertices[ i ].z -= change;
-			clouds.geometry.vertices[ i-1 ].z -=  change;
-			clouds.geometry.vertices[ i-2 ].z -=  change;
-			clouds.geometry.vertices[ i ].y +=  Math.cos(change*i);
-			clouds.geometry.vertices[ i-1 ].y +=  Math.cos(change*i);
-			clouds.geometry.vertices[ i-2 ].y +=  Math.cos(change*i);		
+			geometry.faces.push( new THREE.Face3( i, i-1, i-2, undefined, undefined, Math.floor(Math.random()*2)));
 		}
-		
 	}
-	clouds.geometry.verticesNeedUpdate = true;
-}, 25);
 
-clouds.applyMatrix(this.normalizationMatrix);
-clouds.position.y = - 20000;
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	geometry.mergeVertices();
+	geometry.dynamic = true;
+	geometry.dirtyVertices = true;
 
-return clouds;
+	var clouds = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial());
+
+	clouds.collideWithPlayer = false;
+	clouds.collideWithDynamic = false;
+
+	var startTime =  Date.now();
+	this.toUpdate.push(function(){
+		var time =  Date.now();
+		var past = time - startTime;
+		clouds.rotation.y += 0.0001;	
+		for(var i = 0; i < clouds.geometry.vertices.length; ++i){
+			var index = i+1;
+			var change =  Math.sin(Math.log(past/i)) *   Math.sqrt(i) / 60;
+			if(index % 3 === 0){
+				clouds.geometry.vertices[ i ].z -= change;
+				clouds.geometry.vertices[ i-1 ].z -=  change;
+				clouds.geometry.vertices[ i-2 ].z -=  change;
+				clouds.geometry.vertices[ i ].y +=  Math.cos(change*i);
+				clouds.geometry.vertices[ i-1 ].y +=  Math.cos(change*i);
+				clouds.geometry.vertices[ i-2 ].y +=  Math.cos(change*i);		
+			}
+			
+		}
+		clouds.geometry.verticesNeedUpdate = true;
+	});
+
+	clouds.applyMatrix(this.normalizationMatrix);
+	clouds.position.y = - 20000;
+
+	return clouds;
 };
 
 Level.Zero.prototype.generateStars = function(){
 
-var geometry = new THREE.Geometry();
+	var geometry = new THREE.Geometry();
 
-for ( i = 0; i < 5000; ++i ) {
-	vector = new THREE.Vector3( Math.max(10000, Math.random()*10000-500), Math.random()*50000-5000, Math.random()*i*500 - Math.random()*i*1000-i*100 );
-	geometry.vertices.push(  vector  );
-}
+	for ( i = 0; i < 5000; ++i ) {
+		vector = new THREE.Vector3( Math.max(10000, Math.random()*10000-500), Math.random()*50000-5000, Math.random()*i*500 - Math.random()*i*1000-i*100 );
+		geometry.vertices.push(  vector  );
+	}
 
-var material = new THREE.ParticleBasicMaterial( { size: 30} );
-var particles = new THREE.ParticleSystem( geometry, material );	
+	var material = new THREE.ParticleBasicMaterial( { size: 30} );
+	var particles = new THREE.ParticleSystem( geometry, material );	
 
-return particles;	
+	return particles;	
 };
+
 
 define(['app/lvl/level'], function (){ return Level.Zero }); 
 

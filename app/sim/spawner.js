@@ -32,8 +32,8 @@ Sim.Spawner.prototype.defaults = {
 	},
 	time: {
 		value: {
-			min: 10000,
-			max: 20000,
+			min: 2000,
+			max: 8000,
 			last: 0,
 			frame: 5000
 		}
@@ -50,13 +50,13 @@ Sim.Spawner.prototype.simulate = function(){
 		if(currTime - this.time.last >= this.time.frame){
 			this.time.last = currTime;
 			this.time.frame = Math.max(this.time.min, Math.floor(Math.random()*this.time.max));
-			this.position.x = (Math.random()*this.bounds.x[0]-(this.bounds.x[1]/2));
-			this.position.y = (Math.random()*this.bounds.y[0]-(this.bounds.y[1]/2));
-			this.position.z = (Math.random()*this.bounds.z[0]-(this.bounds.z[1]/2));
+			this.position.x = this.state.level.player.mesh.position.x + (Math.random()*this.bounds.x[0]-(this.bounds.x[1]/2));
+			this.position.y = this.state.level.player.mesh.position.y + (Math.random()*this.bounds.y[0]-(this.bounds.y[1]/2));
+			this.position.z = this.state.level.player.mesh.position.z + (Math.random()*this.bounds.z[0]-(this.bounds.z[1]/2));
 			this.direction.x = (Math.random()*2-1);
 			this.direction.y = (Math.random()*2-1);
 			this.direction.z = (Math.random()*2-1);
-			var newTree = this.build(this.position, this.direction);
+			var newTree = this.build(this.position, this.direction, 100);
 			this.state.level.populateWith(newTree);
 			var buff = Math.floor(Math.random()*this.buffers.length);
 			newTree.sound.play({buffer: this.buffers[buff], loop: false, building: true, suicide: true});
@@ -64,13 +64,14 @@ Sim.Spawner.prototype.simulate = function(){
 	}
 };
 
-Sim.Spawner.prototype.build = function(position, direction){
+Sim.Spawner.prototype.build = function(position, direction, width){
 
-	var pos = (!position) ? new THREE.Vector3(0,0,0) : position;
-	var dir = (!direction) ? new THREE.Vector3(Math.random()*2-1, Math.random()*1, Math.random()*2-1) : direction;
+	var pos = position || new THREE.Vector3(0,0,0);
+	var dir = direction || new THREE.Vector3(Math.random()*2-1, Math.random()*1, Math.random()*2-1);
+	var width = width || .1;
 	var tree = new Struct.Tree();
 	var sound = new this.state.audio.Sound3D();
-	var turtle = new Turtle(pos.clone(), dir.clone(), new THREE.Vector3(0, 1, 0), this.state.level.reusable.material[0], this.state.level.reusable.geometry[1], .1, this.state.level.dynamic.collideWith);
+	var turtle = new Turtle(pos.clone(), dir.clone(), new THREE.Vector3(0, 1, 0), this.state.level.reusable.material[0], this.state.level.reusable.geometry[1], width, this.state.level.dynamic.collideWith);
 
 	tree.add(sound);
 	tree.add(turtle);	
