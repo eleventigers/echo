@@ -2,6 +2,8 @@ Level = function(properties){
 	THREE.Scene.call(this);
 	this.objectives = [];
 	this.failures = [];	
+	this.toUpdate = [];
+	this.complete = false;
 }
 Level.prototype = new THREE.Scene(); 
 
@@ -27,6 +29,13 @@ Level.prototype.testConditions = function(topic){
 		}
 	}	
 };
+
+Level.prototype.update = function(){
+		for(var i = 0; i < this.toUpdate.length; ++i){
+			this.toUpdate[i]();
+		}
+};
+
 Level.prototype.spawnPlayer = function(){
 	var index = this.children.indexOf(this.player.mesh);
 	if( index === -1) {
@@ -54,6 +63,7 @@ Level.prototype.populateWith = function(list){
 	}		
 };
 
+
 Level.prototype.remove = function ( object ) {
 
 	var index = this.player.collideWith.indexOf( object );
@@ -79,9 +89,9 @@ Level.prototype.remove = function ( object ) {
 			scene.__removeObject( object );
 		}
 
-		if(this.renderer) {
-			if(object.material) this.renderer.deallocateMaterial(object.material);
-			this.renderer.deallocateObject(object);
+		if(this.state.renderer) {
+			if(object.material) this.state.renderer.deallocateMaterial(object.material);
+			this.state.renderer.deallocateObject(object);
 		}
 	}	
 };

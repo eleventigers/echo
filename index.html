@@ -18,24 +18,31 @@
                   "libs/stats/Stats"
                 ],
           function() {
-              loadGame();    
+              loadNamespaces();    
           }
         );
+      }
+      function loadNamespaces(){
+        require([ 'app/struct/struct',  
+                  'app/lvl/level',   
+                  'app/sim/sim',
+                  'app/util/util'   
+                ],
+                function(){
+                  loadGame();
+                }
+          );
       }
       function loadGame(){
         require([ 'app/ctrl/PointerLockControls',
                   'app/state/GameState', 
                   'app/state/StateManager', 
                   'app/turtle/turtle',
-                  'app/struct/struct',
                   'app/struct/tree',
                   'app/struct/segment',
                   'app/struct/platform',
-                  'app/lvl/level',
                   'app/lvl/zero',
-                  'app/sim/sim',
                   'app/sim/spawner',
-                  'app/util/util',
                   'app/util/loader',
                   'app/trace/trace'
                 ],
@@ -212,10 +219,20 @@
         color: rgba(256,256,256, 0.5);
         font-size:0.7em;
       }
+      #hint {
+        display: none;
+        position: absolute;
+        width: 100%;
+        top:43%;
+        text-align: center;
+        color: rgba(256,256,256, 0.85);
+        font-size: 2em;
+      }
       
     </style>
   </head>
   <body>
+    <div id="hint">Try to reach the last pilon</div>
     <div id="overlay">
       <div id="menu">
         <header> echo </header>
