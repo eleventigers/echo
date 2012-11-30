@@ -127,6 +127,7 @@ Level.Zero.prototype.reset = function(oncomplete){
 	if(!oncomplete) return;
 
 	this.player.collected = [];
+	this.player.allCollected = [];
 
 	for(var i = 0; i < this.children.length; ++i){
 		if(this.children[i].constructor === Struct.Tree) {

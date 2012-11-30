@@ -124,6 +124,13 @@ Echo = function(){
 				update: function(percent, text){
 					$("#loader p").html(percent+"%: loading "+text);
 				}
+			},
+			hint: {
+				display: function(text, time){
+					var time = time || 2000;
+					var text = text || '';
+					$("#hint").fadeIn(time).html(text).delay(time*2).fadeOut(time);
+				}
 			}
 		}
 
@@ -377,6 +384,21 @@ Echo = function(){
 		this.level.setPlayer(this.controls.getYaw());
 		this.level.spawnPlayer();
 		animate();
+
+		var hint = setTimeout(function(){
+			GUI.hint.display("Long time ago, king echo set the sounds free...", 1500);
+			var hint = setTimeout(function(){
+				GUI.hint.display("Playing happily in this void, they forgot their purpose...", 1500);
+				var hint = setTimeout(function(){
+					GUI.hint.display("Your task is to catch as many sounds as possible,", 1500);
+					var hint = setTimeout(function(){
+						GUI.hint.display("along your way to the furthest platform. Good luck!", 1500);
+					},6000);
+				},6000);
+			},6000);
+		},3000);
+
+
 	};
 
 	var stateMan = new StateManager(initState, document);
@@ -519,6 +541,13 @@ Echo = function(){
 		var tree = state.spawner.build(state.level.exit.point, new THREE.Vector3(0,1,0), 1);
 		state.level.populateWith(tree);
 		tree.sound.play({buffer: state.level.player.allCollected, loop:true, building:true});
+		var hint = setTimeout(function(){
+			GUI.hint.display("Awesome! You made it. You brought "+state.level.player.allCollected.length+" sounds back to the king.", 1500);
+			var hint = setTimeout(function(){
+				GUI.hint.display("Your trial ends here, come back again when you hear the echo!", 1500);
+			},6000);
+		},500);
+		
 	}	
 
 	stateMan.setActiveAppState(initState);	
