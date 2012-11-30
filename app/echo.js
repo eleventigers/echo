@@ -133,7 +133,6 @@ Echo = function(){
 	var camera = setupCamera();
 	var controls = setupControls(camera);
 	var trace = setupAudio();
-	// var test = new  trace.Sound3D();
 	var loader = new Util.Loader({audio:trace});
 
 	// APPLICATION LOAD STATE //
@@ -144,15 +143,24 @@ Echo = function(){
 
 		GUI.loader.enable(true);
 		var samples = [
-		"sounds/echo_s1.mp3", 
-		"sounds/echo_s2.mp3", 
-		"sounds/echo_s3.mp3",
-		"sounds/echo_s4.mp3",
-		"sounds/echo_s5.mp3",
-		"sounds/echo_s6.mp3",
-		"sounds/echo_s7.mp3",
-		"sounds/echo_s8.mp3",
-		"sounds/echo_s9.mp3"
+		"sounds/echo_s10.mp3", 
+		"sounds/echo_s11.mp3", 
+		"sounds/echo_s12.mp3",
+		"sounds/echo_s13.mp3",
+		"sounds/echo_s14.mp3",
+		"sounds/echo_s15.mp3",
+		"sounds/echo_s16.mp3",
+		"sounds/echo_s17.mp3",
+		"sounds/echo_s18.mp3",
+		"sounds/echo_s19.mp3",
+		"sounds/echo_s20.mp3",
+		"sounds/echo_s21.mp3",
+		"sounds/echo_s22.mp3",
+		"sounds/echo_s23.mp3",
+		"sounds/echo_s24.mp3",
+		"sounds/echo_s25.mp3",
+		"sounds/echo_s26.mp3",
+		"sounds/echo_s27.mp3"
 		];
 		loader.load(
 			{sound:samples}, 
@@ -162,7 +170,7 @@ Echo = function(){
 				GUI.overlay.tagline.enable(true);
 			}, 
 			function(file, toload, total){
-				GUI.loader.update(Math.round(toload/total*100), file);
+				GUI.loader.update(100-Math.round(toload/total*100), file);
 			});
 	};
 
@@ -225,22 +233,21 @@ Echo = function(){
 								var l = obj.parent.children.length;
 								if(obj === obj.parent.children[3] || obj === obj.parent.children[l-1]){
 									obj.parent.turtle.position.copy(obj.position);
-									obj.parent.turtle.direction.copy(intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.2-0.1, Math.random()*0.9, Math.random()*0.2-0.1)).normalize());
+									obj.parent.turtle.direction.copy(intersects[0].face.normal.clone());
+									obj.parent.turtle.setWidth(.5);
 									obj.parent.sound.play({buffer: this.level.player.collected, loop:true, building:true});
 									this.level.player.collected = [];	
 								} else {
-									var branch = this.spawner.build(new THREE.Vector3(0,0,0), intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.4-0.2, Math.random()*0.8, Math.random()*0.4-0.2)).normalize());
+									var branch = this.spawner.build(new THREE.Vector3(0,0,0), intersects[0].face.normal.clone().subSelf(new THREE.Vector3(Math.random()*0.4-0.2, Math.random()*0.3, Math.random()*0.4-0.2)).normalize(), .5);
 									intersects[0].object.add(branch);	
 									branch.sound.play({buffer: this.level.player.collected, loop:false, building:true});
 									this.level.player.collected = [];
 								}
-							}
-							
+							}		
 						} else {
-							if(intersects[0].distance <= 50){
-								var branch = this.spawner.build(intersects[0].point, ray.direction.clone().negate().multiplySelf(new THREE.Vector3(-1, 1, -1)).normalize());
-								this.level.add(branch);
-								this.level.player.collideWith.push(branch);
+							if(intersects[0].distance <= 100){
+								var branch = this.spawner.build(intersects[0].point, ray.direction.clone().negate().multiplySelf(new THREE.Vector3(-1, 1, -1)).normalize(), 10);
+								this.level.populateWith(branch);
 								branch.sound.play({buffer: this.level.player.collected, loop:true, building:true});
 								this.level.player.collected = [];
 							}
@@ -302,7 +309,7 @@ Echo = function(){
 			this.controls.update(Date.now() - TIME);
 			TWEEN.update();
 			this.audio.listener.update(this.camera);
-
+			this.level.update();
 			GUI.collection.update(this.level.player.collected.length);
 			
 			if(this.stateManager.cursor.downRight){
@@ -315,8 +322,22 @@ Echo = function(){
 					if(fail[0] || fail[1]) this.fail();
 				}
 				var reach = this.level.testConditions("objectives");
-				if(reach.length > 0 && reach[0] === true){
-					
+				if(reach.length > 0 && reach[0]){
+					var l = this.level.children.length;
+					for(var i = 0; i < l; ++i){
+						if(this.level.children[i].constructor === Struct.Tree){
+							var rootChild = this.level.children[i].children[3];
+							var who = {position:this.level.exit.point};
+							var self = this;
+							if(rootChild && rootChild.pickUp) rootChild.pickUp(who, 2000, function(pickings){
+								for(var j = 0; j < pickings.length; ++j){
+									pickings[j].collectable = false;
+									self.level.player.allCollected.push(pickings[j]);
+								}	
+								if(i === l) theEnd(self);
+							});
+						}
+					}			
 				}
 			}
 
@@ -348,13 +369,13 @@ Echo = function(){
 		this.renderer = renderer;
 		this.camera = camera;
 		this.controls = controls;
-		this.level = new Level.Zero({renderer: this.renderer});
-		this.level.setPlayer(this.controls.getYaw());
-		this.level.spawnPlayer();
 		this.audio = trace;
 		this.audio.mixer.level(0);
 		this.loader = loader;
+		this.level = new Level.Zero({state: this});
 		this.spawner = new Sim.Spawner({state:this, buffers:loader.get("sound")});
+		this.level.setPlayer(this.controls.getYaw());
+		this.level.spawnPlayer();
 		animate();
 	};
 
@@ -415,6 +436,7 @@ Echo = function(){
 						for(var i = 0; i < pickings.length; ++i){
 							pickings[i].collectable = false;
 							state.level.player.collected.push(pickings[i]);
+							state.level.player.allCollected.push(pickings[i]);
 						}	
 					});		
 				}
@@ -489,6 +511,14 @@ Echo = function(){
 	function animate() {
 		requestAnimationFrame(animate);
 		stateMan.activeAppState.render();
+	}
+
+	function theEnd(state){
+		if(state.level.complete) return;
+		state.level.complete = true;
+		var tree = state.spawner.build(state.level.exit.point, new THREE.Vector3(0,1,0), 1);
+		state.level.populateWith(tree);
+		tree.sound.play({buffer: state.level.player.allCollected, loop:true, building:true});
 	}	
 
 	stateMan.setActiveAppState(initState);	

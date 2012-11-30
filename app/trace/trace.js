@@ -383,7 +383,7 @@
                     return 0xc9f400;
             }
         } else {
-            console.log("trace.js: supplied pitch is not within MIDI range");
+            // console.log("trace.js: supplied pitch is not within MIDI range");
         }
 
     }
@@ -657,7 +657,7 @@
         init: {
             value: function(){
                 this.output.gain.value = 0.8;
-                this.panner.refDistance = 50;
+                this.panner.refDistance = 70;
                 this.panner.rolloffFactor = 2;
             }
         },
@@ -770,7 +770,9 @@
                         this.onError();
                         return;
                     } else {
-                        var id = this.bufferIndex;
+
+                        var isRand = (Math.random()*16 > 15);
+                        var id = (isRand) ? Math.min(this.bufferData[2].length, this.bufferIndex+Math.floor(Math.random()*this.bufferData[2].length)) : this.bufferIndex;
                         var left = e.outputBuffer.getChannelData(0), right = e.outputBuffer.getChannelData(1);   
                         var isHan = (this.bufferIndex === 0 || this.bufferIndex === this.bufferData[0].length - 1);
                         var currSegment = this.bufferData[2][id];

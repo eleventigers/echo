@@ -18,24 +18,32 @@
                   "libs/stats/Stats"
                 ],
           function() {
-              loadGame();    
+              loadNamespaces();    
           }
         );
+      }
+
+      function loadNamespaces(){
+        require([ 'app/struct/struct',  
+                  'app/lvl/level',   
+                  'app/sim/sim',
+                  'app/util/util'   
+                ],
+                function(){
+                  loadGame();
+                }
+          );
       }
       function loadGame(){
         require([ 'app/ctrl/PointerLockControls',
                   'app/state/GameState', 
                   'app/state/StateManager', 
                   'app/turtle/turtle',
-                  'app/struct/struct',
                   'app/struct/tree',
                   'app/struct/segment',
                   'app/struct/platform',
-                  'app/lvl/level',
                   'app/lvl/zero',
-                  'app/sim/sim',
                   'app/sim/spawner',
-                  'app/util/util',
                   'app/util/loader',
                   'app/trace/trace'
                 ],
