@@ -227,7 +227,7 @@
                 }
             })(); 
 
-            this.buffers.load('sounds/41451__sandyrb__3auc-ir-close-003.wav', function(buffers){
+            this.buffers.load('sounds/41451__sandyrb__3auc-ir-close-003.mp3', function(buffers){
                 userReverb.buffer = buffers[0];
             });
 
@@ -304,7 +304,7 @@
         STRING = "string",
         INT = "int";
 
-    function dbToWAVolume (db) {
+    function dbTomp3olume (db) {
         return Math.max(0, Math.round(100 * Math.pow(2, db / 6)) / 100);   
     }
     function fmod (x, y) {
