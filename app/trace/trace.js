@@ -571,7 +571,7 @@
 
                     if (analysis.loudness > analysis.avgLoudness){
                         if (analysis.centroid > analysis.avgCentroid){
-                            cent *= Math.sin(cent)*Math.log(analysis.loudness);
+                            cent *= Math.cos(cent)*Math.log(analysis.loudness)+Math.random()*2-1;
                         }
                         // turtle.push(); 
                         if (analysis.centroid <= analysis.avgCentroid){

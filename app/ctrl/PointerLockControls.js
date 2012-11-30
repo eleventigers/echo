@@ -188,7 +188,7 @@ var PointerLockControls = function ( camera ) {
 		velocity.z += ( - velocity.z ) * 0.08 * delta;
 
 		if(!onObject && inAir > airSmooth){
-			velocity.y -= 0.15 * delta; 
+			velocity.y -= 0.10 * delta; 
 		} 		
 		if (onObject){
 			yawObject.position.y = floor.y+yawObject.boundRadius;
@@ -207,11 +207,11 @@ var PointerLockControls = function ( camera ) {
 		}
 
 		//sprint initially increses accelaration or decreases it when stopping
-		if (moveForward) velocity.z -= 0.05 * delta + stepsZ * 0.001;		
-		if (moveBackward) velocity.z += 0.05 * delta + stepsZ * 0.001;
+		if (moveForward) velocity.z -= 0.0275 * delta + stepsZ * 0.001;		
+		if (moveBackward) velocity.z += 0.0275 * delta + stepsZ * 0.001;
 
-		if ( moveLeft ) velocity.x -= 0.05 * delta + stepsX * 0.001;
-		if ( moveRight ) velocity.x += 0.05 * delta + stepsX * 0.001;
+		if ( moveLeft ) velocity.x -= 0.015 * delta + stepsX * 0.001;
+		if ( moveRight ) velocity.x += 0.015 * delta + stepsX * 0.001;
 
 		if (velocity.z*velocity.z >= 0.1) {
 			if (stepsZ < 100) ++stepsZ;

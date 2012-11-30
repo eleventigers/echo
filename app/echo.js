@@ -426,7 +426,7 @@ Echo = function(){
 	}
 
 	function setupCamera(){
-		return new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 1, 300000 );
+		return new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 1, 300000 );
 	}
 
 
