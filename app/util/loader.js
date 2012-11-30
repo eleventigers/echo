@@ -61,7 +61,7 @@ Util.Loader.prototype.load = function(assets, oncomplete, onprogress, onerror) {
 		function progress(file){
 			--toLoad;
 			if(onprogress) onprogress(file, toLoad, total);
-			console.log(self+" loaded "+file, toLoad+" left to load...");
+			//console.log(self+" loaded "+file, toLoad+" left to load...");
 		}
 
 		function error(file){

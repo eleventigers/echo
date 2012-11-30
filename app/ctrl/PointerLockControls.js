@@ -104,6 +104,7 @@ var PointerLockControls = function ( camera ) {
 	};
 
 	this.onKeyDown = function ( keyCode ) {
+
 		switch ( keyCode ) {
 			case 38: // up
 			case 87: // w
@@ -173,13 +174,13 @@ var PointerLockControls = function ( camera ) {
 	};
 
 	this.lock = function(value){
-		this.locked = value;
+		// this.locked = value;
 		if(value) velocity.set(0,0,0);
 	};
 
 	this.update = function ( delta ) {
 
-		if(this.locked) return;
+		// if(this.locked) return;
 
 		delta *= 0.1;
 

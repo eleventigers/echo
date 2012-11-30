@@ -46,7 +46,15 @@
       }
       function startGame(){
         require(['app/echo'], function(){
-          var game = new Echo();     
+          var webAudio = (window.webkitAudioContext || window.AudioContext) ? true : false;
+          var webGl = Detector.webgl;
+          var pLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+          if ( !webAudio || !webGl || !pLock ){
+             $("#error").show();
+             $("#loader").hide();
+          } else {
+            var game = new Echo();
+          }        
         });
       }
 
@@ -110,9 +118,6 @@
         
       }
 
-     /* #buttons ul {
-        margin-top: 3%;
-      }*/
       #buttons li {  
         padding: 16px;
         margin: 10px;
@@ -135,8 +140,6 @@
         cursor: default;
       }
 
-    
-
       #tagline {
         display: none;
         margin-top:6.5%;
@@ -156,6 +159,18 @@
         width:100%;
         color: rgba(256,256,256, 0.5);
         font-size:.8em;
+      }
+
+      #error {
+        position: relative;
+        margin-left: auto;
+        margin-right:auto;
+        text-align: justify;
+        width:381px;
+        display: none;
+        color: #eecc22;
+        font-size:1em;
+        line-height: 25px;
       }
 
       #collection {
@@ -236,6 +251,7 @@
           <span>&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
         </div>   
       </div>
+      <div id="error">Sorry, but it seems that your browser doesn't support few experimental HTML5 features that are required to run this game. Try again on the latest Google Chrome browser that you can get <a href="http://www.google.com/chrome" target="blank">from here</a>.</div>
       <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a> for the <a href="https://github.com/github/game-off-2012" target="blank">Github Game Off 2012</a></div>
     </div>
     <div id="collection">  
