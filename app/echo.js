@@ -144,15 +144,15 @@ Echo = function(){
 
 		GUI.loader.enable(true);
 		var samples = [
-		"sounds/echo_s1.wav", 
-		"sounds/echo_s2.wav", 
-		"sounds/echo_s3.wav",
-		"sounds/echo_s4.wav",
-		"sounds/echo_s5.wav",
-		"sounds/echo_s6.wav",
-		"sounds/echo_s7.wav",
-		"sounds/echo_s8.wav",
-		"sounds/echo_s9.wav"
+		"sounds/echo_s1.mp3", 
+		"sounds/echo_s2.mp3", 
+		"sounds/echo_s3.mp3",
+		"sounds/echo_s4.mp3",
+		"sounds/echo_s5.mp3",
+		"sounds/echo_s6.mp3",
+		"sounds/echo_s7.mp3",
+		"sounds/echo_s8.mp3",
+		"sounds/echo_s9.mp3"
 		];
 		loader.load(
 			{sound:samples}, 
