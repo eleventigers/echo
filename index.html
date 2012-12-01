@@ -228,19 +228,53 @@
         color: rgba(256,256,256, 0.85);
         font-size: 2em;
       }
+      #desc { 
+        position: absolute;
+        display: none;
+        z-index: 2;
+        width: 100%;
+        top:30%;
+      }
+      #desc ul{
+        cursor: pointer;
+        font-size: 0.8em;
+        line-height: 25px;
+        text-align: justify;
+        padding:50px;
+        position: relative;
+        margin-left: auto;
+        margin-right: auto;
+        color: rgba(256,256,256, 0.85);
+        background-color: #000; 
+        width: 25%;
+        border: solid;
+        border-color: rgba(256,256,256, 0.5);
+        border-width: 1px;
+        list-style-position: inside;
+        list-style: square;
+      }
       
     </style>
   </head>
   <body>
     <div id="hint">Try to reach the last pilon</div>
     <div id="overlay">
+       <div id="desc">
+        <ul>
+          <li>Look around with your mouse.</li>
+          <li>Move around either using arrow keys or WASD.</li>
+          <li>Try to pull sounds in by targeting them while holding the right mouse button down.</li>
+          <li>Push sounds back into the game by targeting a surface (or another sound) while pressing the left mouse button down.</li>
+          <li>Use Space to jump ;></li>
+        </ul>
+      </div>
       <div id="menu">
         <header> echo </header>
         <div id="buttons"> 
           <ul>
             <li id="play" class="enabled">Play</li>
             <li id="restart" class="disabled">Restart</li>
-            <li id="about" class="disabled">About</li>
+            <li id="about" class="enabled">About</li>
           </ul>    
         </div>
         <div id="loader">
@@ -270,6 +304,7 @@
       </div>
       <div id="error">Sorry, but it seems that your browser doesn't support few experimental HTML5 features that are required to run this game. Try again on the latest Google Chrome browser that you can get <a href="http://www.google.com/chrome" target="blank">from here</a>.</div>
       <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a> for the <a href="https://github.com/github/game-off-2012" target="blank">Github Game Off 2012</a></div>
+    
     </div>
     <div id="collection">  
       <div id="wave"></div>

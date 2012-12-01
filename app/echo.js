@@ -28,6 +28,16 @@ Echo = function(){
 						if(oncomplete) oncomplete();
 					});
 				},
+				about: {
+					fade: function(oncomplete){
+						$('#desc').fadeToggle(1000, function(){
+							if(oncomplete) oncomplete();
+							$('#desc').click(function(){
+								$(this).fadeOut(1000)
+							})
+						});
+					}
+				},
 				menu: {
 					enable: function(enabled){
 						if(!enabled){
@@ -189,6 +199,9 @@ Echo = function(){
 				GUI.overlay.menu.buttons.restart.enable(true);
 				GUI.pointer.lock(true);
 			}
+			if(id === "about"){
+				GUI.overlay.about.fade();
+			}
 		}
 	}
 
@@ -224,6 +237,9 @@ Echo = function(){
 			}
 			if(id === "restart"){
 				this.restart();
+			}
+			if(id === "about"){
+				GUI.overlay.about.fade();
 			}
 		}
 
