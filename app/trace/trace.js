@@ -469,7 +469,9 @@
                 this.position.copy( value );
                 this.posDelta.sub( this.position, this.oldPosition );
                 this.panner.setPosition( this.position.x, this.position.y, this.position.z );
-                this.panner.setVelocity( this.posDelta.x, this.posDelta.y, this.posDelta.z );
+                if (hasDoppler) {
+                    this.panner.setVelocity( this.posDelta.x, this.posDelta.y, this.posDelta.z );
+                }
                 var toListener = this.position.distanceTo(userInstance.listener.getPosition());
                 var sendGain = Math.log(toListener);
                 this.send.gain.value = Math.min(1, sendGain/5);
