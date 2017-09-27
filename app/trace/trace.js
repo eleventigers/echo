@@ -1,5 +1,5 @@
 (function (window) {
-	var userContext, userInstance, userMixer, userCompressor, userReverb, userReverbPre
+	var userContext, userInstance, userMixer, userCompressor, userReverb, userReverbPre, hasDoppler
         Trace = function (context) {
             if (!context) {
                 context = window.AudioContext && (new window.AudioContext());
@@ -8,6 +8,8 @@
             userContext = context;
             userInstance = this;
             console.log(userContext)
+            hasDoppler = (typeof userContext.listener.setVelocity !== "undefined");
+
             userMixer = userContext.createGain();
 
             userCompressor = userContext.createDynamicsCompressor();
@@ -55,7 +57,9 @@
                                 object.matrixWorld.rotateAxis( posFront );
                                 posFront.normalize();
                                 userContext.listener.setPosition( posNew.x, posNew.y, posNew.z );
-                                userContext.listener.setVelocity( posDelta.x, posDelta.y, posDelta.z );
+                                if (hasDoppler) {
+                                    userContext.listener.setVelocity( posDelta.x, posDelta.y, posDelta.z );
+                                }
                                 userContext.listener.setOrientation( posFront.x, posFront.y, posFront.z, object.up.x, object.up.y, object.up.z );
                                 return true;
                             }
