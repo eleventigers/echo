@@ -7,8 +7,8 @@
     <script src="require.js"></script>
     <script>
       function loadLibs(){
-        require( ["libs/three/three", 
-                  "libs/three/ShaderExtras", 
+        require( ["libs/three/three",
+                  "libs/three/ShaderExtras",
                   "libs/three/ImprovedNoise",
                   "libs/three/Detector.js",
                   "libs/jquery/jquery.min",
@@ -18,15 +18,15 @@
                   "libs/stats/Stats"
                 ],
           function() {
-              loadNamespaces();    
+              loadNamespaces();
           }
         );
       }
       function loadNamespaces(){
-        require([ 'app/struct/struct',  
-                  'app/lvl/level',   
+        require([ 'app/struct/struct',
+                  'app/lvl/level',
                   'app/sim/sim',
-                  'app/util/util'   
+                  'app/util/util'
                 ],
                 function(){
                   loadGame();
@@ -35,8 +35,8 @@
       }
       function loadGame(){
         require([ 'app/ctrl/PointerLockControls',
-                  'app/state/GameState', 
-                  'app/state/StateManager', 
+                  'app/state/GameState',
+                  'app/state/StateManager',
                   'app/turtle/turtle',
                   'app/struct/tree',
                   'app/struct/segment',
@@ -53,7 +53,7 @@
       }
       function startGame(){
         require(['app/echo'], function(){
-          var webAudio = (window.webkitAudioContext || window.AudioContext) ? true : false;
+          var webAudio = (window.AudioContext || window.webkitAudioContext) ? true : false;
           var webGl = Detector.webgl;
           var pLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
           if ( !webAudio || !webGl || !pLock ){
@@ -61,12 +61,12 @@
              $("#loader").hide();
           } else {
             var game = new Echo();
-          }        
+          }
         });
       }
 
       loadLibs();
-      
+
     </script>
     <title>echo</title>
     <style>
@@ -87,7 +87,7 @@
 
       header {
         color: #ffffff;
-        font-size:8em;  
+        font-size:8em;
         font-weight: bold;
       }
 
@@ -122,15 +122,15 @@
         -webkit-box-shadow: 0px 0px 20px rgba(90,256,256,0.3);
         -moz-box-shadow:    0px 0px 20px rgba(90,256,256,0.3);
         width:300px;
-        
+
       }
 
-      #buttons li {  
+      #buttons li {
         padding: 16px;
         margin: 10px;
         color: #ffffff;
         font-size:2em;
-        letter-spacing: .1em; 
+        letter-spacing: .1em;
       }
 
       #buttons .enabled{
@@ -181,7 +181,7 @@
       }
 
       #collection {
-        display: none; 
+        display: none;
         position:absolute;
         width:2%;
         margin-left: 1%;
@@ -228,7 +228,7 @@
         color: rgba(256,256,256, 0.85);
         font-size: 2em;
       }
-      #desc { 
+      #desc {
         position: absolute;
         display: none;
         z-index: 2;
@@ -245,7 +245,7 @@
         margin-left: auto;
         margin-right: auto;
         color: rgba(256,256,256, 0.85);
-        background-color: #000; 
+        background-color: #000;
         width: 25%;
         border: solid;
         border-color: rgba(256,256,256, 0.5);
@@ -253,7 +253,7 @@
         list-style-position: inside;
         list-style: square;
       }
-      
+
     </style>
   </head>
   <body>
@@ -270,12 +270,12 @@
       </div>
       <div id="menu">
         <header> echo </header>
-        <div id="buttons"> 
+        <div id="buttons">
           <ul>
             <li id="play" class="enabled">Play</li>
             <li id="restart" class="disabled">Restart</li>
             <li id="about" class="enabled">About</li>
-          </ul>    
+          </ul>
         </div>
         <div id="loader">
           <div id="floatingCirclesG">
@@ -297,21 +297,21 @@
           </div>
           </div>
           <p>  </p>
-        </div> 
+        </div>
          <div id="tagline">
-          <span>&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>     
-        </div>   
+          <span>&quot;Whenever you find yourself on the side of the majority, it is time to pause and reflect.&quot;</span>
+        </div>
       </div>
       <div id="error">Sorry, but it seems that your browser doesn't support few experimental HTML5 features that are required to run this game. Try again on the latest Google Chrome browser that you can get <a href="http://www.google.com/chrome" target="blank">from here</a>.</div>
       <div id="author">Build by <a href="http://jokubasdargis.com" target="blank">Jokubas Dargis</a> @ <a href="http://blog.kitehunt.com" target="blank">tailwinded</a> for the <a href="https://github.com/github/game-off-2012" target="blank">Github Game Off 2012</a></div>
-    
+
     </div>
-    <div id="collection">  
+    <div id="collection">
       <div id="wave"></div>
       <p> 0 </p>
     </div>
 
-    
-   
+
+
   </body>
 </html>
